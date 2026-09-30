@@ -8,7 +8,9 @@ enum Main {
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
-        app.setActivationPolicy(.accessory)
+        // 默认普通 App（有 Dock 图标）；设置里选择隐藏则回到纯菜单栏模式
+        let hideDock = UserDefaults.standard.bool(forKey: "hideDockIcon")
+        app.setActivationPolicy(hideDock ? .accessory : .regular)
         app.run()
     }
 }
@@ -19,13 +21,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var store: UsageStore!
     private var statusItem: NSStatusItem!
     private var panel: PanelController!
+    private var mainWindow: MainWindowController!
     private var settingsWindow: NSWindow?
     private var cancellables = Set<AnyCancellable>()
     private var appearanceObservation: NSKeyValueObservation?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        installEditMenu()
         settings = AppSettings()
+        installMainMenu()
         handleArguments()
         store = UsageStore(settings: settings)
 
@@ -45,6 +48,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             rootView: PanelView(store: store, settings: settings) { [weak self] in self?.showSettings() })
         panel.onClose = { [weak self] in self?.statusItem.button?.highlight(false) }
 
+        mainWindow = MainWindowController(
+            rootView: PanelView(store: store, settings: settings,
+                                openSettings: { [weak self] in self?.showSettings() },
+                                windowMode: true),
+            settings: settings)
+
+        settings.$hideDockIcon.dropFirst().removeDuplicates()
+            .sink { [weak self] hide in self?.applyDockIcon(hide: hide) }
+            .store(in: &cancellables)
+
         store.objectWillChange
             .merge(with: settings.objectWillChange)
             .debounce(for: .milliseconds(30), scheduler: RunLoop.main)
@@ -58,9 +71,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         renderStatusItem()
         store.startPolling()
 
+        if settings.mainWindowVisible {
+            mainWindow.show()
+        }
         if settings.token.isEmpty && !settings.endpoint.contains("token=") {
             showSettings()
         }
+    }
+
+    // MARK: - App 生命周期
+
+    /// 点 Dock 图标 / 再次打开 App：显示主窗口
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showMainWindow()
+        return false
+    }
+
+    /// 关掉主窗口不退出，菜单栏照常工作
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    private func applyDockIcon(hide: Bool) {
+        NSApp.setActivationPolicy(hide ? .accessory : .regular)
+        // 切换策略后窗口可能被收到后面，重新把设置窗口拿到前面
+        DispatchQueue.main.async { [weak self] in
+            NSApp.activate(ignoringOtherApps: true)
+            self?.settingsWindow?.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    @objc private func showMainWindow() {
+        panel.close()
+        store.refreshIfStale()
+        mainWindow.show()
+    }
+
+    @objc private func toggleAlwaysOnTop() {
+        settings.alwaysOnTop.toggle()
     }
 
     /// 首次安装时可用 `--set-token XXX` 把 token 写进钥匙串（由 App 自己写，之后读取不会弹授权框）
@@ -121,6 +167,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showContextMenu() {
         let menu = NSMenu()
+        menu.addItem(withTitle: "显示主窗口", action: #selector(showMainWindow), keyEquivalent: "").target = self
+        let onTop = menu.addItem(withTitle: "固定在最前面", action: #selector(toggleAlwaysOnTop), keyEquivalent: "")
+        onTop.target = self
+        onTop.state = settings.alwaysOnTop ? .on : .off
+        menu.addItem(.separator())
         menu.addItem(withTitle: "刷新", action: #selector(refreshNow), keyEquivalent: "r").target = self
         menu.addItem(withTitle: "设置…", action: #selector(openSettingsAction), keyEquivalent: ",").target = self
         menu.addItem(.separator())
@@ -136,9 +187,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @objc private func openSettingsAction() { showSettings() }
 
-    /// 菜单栏应用没有默认的「编辑」菜单，⌘C/⌘V/⌘A 快捷键无人响应，输入框无法复制粘贴。
-    private func installEditMenu() {
+    /// 屏幕顶部的 App 菜单：应用 / 编辑 / 窗口。
+    /// 代码式 App 没有默认菜单，不建的话 ⌘C/⌘V/⌘Q 等快捷键无人响应。
+    private func installMainMenu() {
         let main = NSMenu()
+
+        // 应用菜单
+        let appItem = NSMenuItem()
+        main.addItem(appItem)
+        let appMenu = NSMenu(title: "Tidy Usage")
+        appMenu.addItem(withTitle: "关于 Tidy Usage",
+                        action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "设置…", action: #selector(openSettingsAction), keyEquivalent: ",").target = self
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "隐藏 Tidy Usage", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "退出 Tidy Usage", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+
+        // 编辑菜单
         let editItem = NSMenuItem()
         main.addItem(editItem)
         let edit = NSMenu(title: "编辑")
@@ -151,8 +219,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edit.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         edit.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editItem.submenu = edit
+
+        // 窗口菜单
+        let windowItem = NSMenuItem()
+        main.addItem(windowItem)
+        let windowMenu = NSMenu(title: "窗口")
+        windowMenu.delegate = self
+        windowMenu.addItem(withTitle: "显示主窗口", action: #selector(showMainWindow), keyEquivalent: "0").target = self
+        let onTop = windowMenu.addItem(withTitle: "固定在最前面", action: #selector(toggleAlwaysOnTop), keyEquivalent: "t")
+        onTop.keyEquivalentModifierMask = [.command, .option]
+        onTop.target = self
+        onTop.tag = MenuTag.alwaysOnTop
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(withTitle: "最小化", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: "关闭窗口", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowItem.submenu = windowMenu
+        NSApp.windowsMenu = windowMenu
+
         NSApp.mainMenu = main
     }
+
+    private enum MenuTag { static let alwaysOnTop = 1001 }
 
     // MARK: - 设置窗口
 
@@ -167,7 +254,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.center()
             settingsWindow = window
         }
+        // 主窗口置顶时，设置窗口也要同层，否则会被压在下面
+        settingsWindow?.level = settings.alwaysOnTop ? .floating : .normal
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+}
+
+extension AppDelegate: NSMenuDelegate {
+    /// 打开「窗口」菜单时同步「固定在最前面」的勾选状态
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.item(withTag: MenuTag.alwaysOnTop)?.state = settings.alwaysOnTop ? .on : .off
     }
 }

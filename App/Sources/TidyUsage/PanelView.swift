@@ -17,10 +17,15 @@ struct PanelView: View {
     @ObservedObject var store: UsageStore
     @ObservedObject var settings: AppSettings
     var openSettings: () -> Void
+    /// 主窗口模式：顶部留出红黄绿按钮的位置，右侧放置顶开关
+    var windowMode = false
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             VStack(alignment: .leading, spacing: 0) {
+                if windowMode {
+                    WindowHeader(settings: settings)
+                }
                 if store.hasData {
                     ForEach(Array(store.sections.enumerated()), id: \.element.id) { index, section in
                         if index > 0 { Spacer().frame(height: 4) }
@@ -39,6 +44,42 @@ struct PanelView: View {
         }
         .frame(width: 320)
     }
+}
+
+/// 主窗口顶部条：左侧让给红黄绿按钮，右侧是置顶开关，空白处可拖动窗口
+private struct WindowHeader: View {
+    @ObservedObject var settings: AppSettings
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Spacer()
+            Button {
+                guard Throttle.allow("alwaysOnTop", interval: 0.3) else { return }
+                settings.alwaysOnTop.toggle()
+            } label: {
+                Image(systemName: settings.alwaysOnTop ? "pin.fill" : "pin")
+                    .rotationEffect(.degrees(settings.alwaysOnTop ? 0 : 45))
+                    .foregroundStyle(settings.alwaysOnTop ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(IconButtonStyle())
+            .help(settings.alwaysOnTop ? "已固定在最前面 · 点击取消" : "固定在最前面")
+        }
+        .frame(height: 28)
+        .background(WindowDragArea())
+        .padding(.top, 2)
+    }
+}
+
+/// 按住即可拖动所在窗口的区域
+private struct WindowDragArea: NSViewRepresentable {
+    final class DragView: NSView {
+        override var mouseDownCanMoveWindow: Bool { true }
+        override func mouseDown(with event: NSEvent) {
+            window?.performDrag(with: event)
+        }
+    }
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 private struct SectionView: View {

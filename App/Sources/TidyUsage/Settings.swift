@@ -27,6 +27,19 @@ final class AppSettings: ObservableObject {
     @Published var pinned: [String] {
         didSet { defaults.set(pinned, forKey: "pinned") }
     }
+    /// 主窗口固定在所有窗口最前面
+    @Published var alwaysOnTop: Bool {
+        didSet { defaults.set(alwaysOnTop, forKey: "alwaysOnTop") }
+    }
+    /// 隐藏 Dock 图标（回到纯菜单栏模式，点 App 图标仍能打开主窗口）
+    @Published var hideDockIcon: Bool {
+        didSet { defaults.set(hideDockIcon, forKey: "hideDockIcon") }
+    }
+    /// 上次退出时主窗口是否开着，启动时沿用
+    var mainWindowVisible: Bool {
+        get { defaults.object(forKey: "mainWindowVisible") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "mainWindowVisible") }
+    }
     @Published private(set) var token: String
     @Published private(set) var deepseekKey: String
 
@@ -35,6 +48,8 @@ final class AppSettings: ObservableObject {
         let iv = defaults.double(forKey: "interval")
         interval = iv > 0 ? iv : Self.defaultInterval
         pinned = defaults.stringArray(forKey: "pinned") ?? Self.defaultPinned
+        alwaysOnTop = defaults.object(forKey: "alwaysOnTop") as? Bool ?? true
+        hideDockIcon = defaults.bool(forKey: "hideDockIcon")
         token = Keychain.read() ?? ""
         deepseekKey = Keychain.read(account: "deepseek_key") ?? ""
     }

@@ -38,6 +38,12 @@ struct SettingsView: View {
                     Toggle("登录时启动", isOn: $launchAtLogin)
                         .onChange(of: launchAtLogin) { _, v in settings.launchAtLogin = v }
                 }
+
+                Section("窗口") {
+                    Toggle("主窗口固定在最前面", isOn: $settings.alwaysOnTop)
+                    Toggle("隐藏 Dock 图标", isOn: $settings.hideDockIcon)
+                        .help("隐藏后只在菜单栏显示；再次打开 App 或从菜单栏右键仍可打开主窗口")
+                }
             }
             .formStyle(.grouped)
             .scrollDisabled(true)

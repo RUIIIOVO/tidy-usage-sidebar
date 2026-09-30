@@ -10,6 +10,7 @@ final class PanelController: NSObject {
     private let hosting: NSHostingView<AnyView>
     private var clickMonitor: Any?
     private var keyMonitor: Any?
+    private var localClickMonitor: Any?
     private var resignObserver: NSObjectProtocol?
     /// 面板顶边中点固定在打开时的位置
     private var anchorTop: CGFloat = 0
@@ -125,6 +126,13 @@ final class PanelController: NSObject {
                 self.close()
             }
         }
+        // 全局监听收不到本 App 自己的窗口（主窗口 / 设置窗口），点它们也要关面板
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self, event.window !== self.panel,
+                  event.window !== self.anchorButton?.window else { return event }
+            Task { @MainActor in self.close() }
+            return event
+        }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == 53 { self?.close(); return nil }
             return event
@@ -139,6 +147,8 @@ final class PanelController: NSObject {
     private func removeMonitors() {
         if let m = clickMonitor { NSEvent.removeMonitor(m) }
         if let m = keyMonitor { NSEvent.removeMonitor(m) }
+        if let m = localClickMonitor { NSEvent.removeMonitor(m) }
+        localClickMonitor = nil
         if let o = resignObserver { NotificationCenter.default.removeObserver(o) }
         clickMonitor = nil
         keyMonitor = nil
