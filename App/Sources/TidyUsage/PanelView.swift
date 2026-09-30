@@ -91,7 +91,7 @@ private struct RowView: View {
                     Text("\(Int(w.used.rounded()))")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .monospacedDigit()
-                        .foregroundStyle(accent)
+                        .foregroundStyle(.primary)
                     Text("%")
                         .font(.system(size: 10.5, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)

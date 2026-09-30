@@ -79,7 +79,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem?.button else { return }
         let sections = store.sections
         let groups = MenuBarIcon.groups(windows: store.windows, sections: sections, pinned: settings.pinned)
-        let dimmed = store.errorMessage != nil || !store.hasData
+        // 只在完全没有数据时变淡；某家临时失败沿用旧数据，不做视觉区分
+        let dimmed = !store.hasData
         let empty: MenuBarIcon.EmptyState =
             store.errorMessage != nil ? .error : (store.hasData ? .idle : .loading)
         button.image = MenuBarIcon.image(groups: groups, dimmed: dimmed, emptyState: empty)

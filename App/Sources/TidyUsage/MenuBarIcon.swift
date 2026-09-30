@@ -47,7 +47,6 @@ enum MenuBarIcon {
             var x: CGFloat = 0
             for (i, g) in groups.enumerated() {
                 if i > 0 { x += groupGap }
-                ctx.setAlpha(dimmed || g.stale ? 0.45 : 1)
                 if let logo = ProviderInfo.logo(g.provider) {
                     drawLogo(logo, in: CGRect(x: x, y: (height - logoSize) / 2, width: logoSize, height: logoSize),
                              color: base, ctx: ctx)
