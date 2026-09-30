@@ -10,6 +10,7 @@ import SwiftUI
 final class MainWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
     private let hosting: NSHostingView<AnyView>
+    private let effect: NSVisualEffectView
     private let settings: AppSettings
     private var sizeObservation: NSKeyValueObservation?
     private var cancellables = Set<AnyCancellable>()
@@ -40,7 +41,11 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         hosting.translatesAutoresizingMaskIntoConstraints = false
         hosting.sizingOptions = .intrinsicContentSize
 
+        let container = NSView()
+        container.wantsLayer = true
+
         let effect = NSVisualEffectView()
+        effect.translatesAutoresizingMaskIntoConstraints = false
         effect.material = .popover
         effect.blendingMode = .behindWindow
         // 窗口失焦时也保持毛玻璃，不变灰
@@ -49,14 +54,23 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         effect.layer?.cornerRadius = 12
         effect.layer?.cornerCurve = .continuous
         effect.layer?.masksToBounds = true
-        effect.addSubview(hosting)
+        effect.alphaValue = CGFloat(settings.backgroundOpacity)
+        self.effect = effect
+
+        container.addSubview(effect)
+        container.addSubview(hosting)
         NSLayoutConstraint.activate([
-            hosting.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
-            hosting.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
-            hosting.topAnchor.constraint(equalTo: effect.topAnchor),
-            hosting.bottomAnchor.constraint(equalTo: effect.bottomAnchor),
+            effect.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            effect.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            effect.topAnchor.constraint(equalTo: container.topAnchor),
+            effect.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+
+            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: container.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
-        window.contentView = effect
+        window.contentView = container
         super.init()
         window.delegate = self
 
@@ -73,6 +87,12 @@ final class MainWindowController: NSObject, NSWindowDelegate {
 
         settings.$alwaysOnTop
             .sink { [weak self] on in self?.applyLevel(on) }
+            .store(in: &cancellables)
+
+        settings.$backgroundOpacity
+            .sink { [weak self] op in
+                self?.effect.alphaValue = CGFloat(op)
+            }
             .store(in: &cancellables)
 
         // 拔掉副屏 / 改分辨率后，窗口若落到屏幕外就拉回来

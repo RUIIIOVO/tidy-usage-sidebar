@@ -36,9 +36,29 @@ struct SettingsView: View {
                     Toggle("显示桌面主窗口", isOn: $settings.showMainWindow)
                     Toggle("固定在所有窗口最前面", isOn: $settings.alwaysOnTop)
                         .disabled(!settings.showMainWindow)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("背景透明度")
+                            Spacer()
+                            Text("\(Int((settings.backgroundOpacity * 100).rounded()))%")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(value: $settings.backgroundOpacity, in: 0.2...1.0, step: 0.05)
+                    }
+                    .padding(.vertical, 2)
+                    .disabled(!settings.showMainWindow)
                 }
 
-                Section("系统与菜单栏") {
+                Section("外观与系统") {
+                    Picker("外观主题", selection: $settings.theme) {
+                        Text("跟随系统").tag("system")
+                        Text("深色").tag("dark")
+                        Text("浅色").tag("light")
+                    }
+                    .pickerStyle(.segmented)
+
                     Toggle("隐藏 Dock 图标（纯菜单栏模式）", isOn: $settings.hideDockIcon)
                         .help("隐藏后只保留菜单栏图标；再次打开 App 或在状态栏菜单中仍可打开主窗口")
                     Toggle("登录时启动", isOn: $launchAtLogin)
@@ -85,11 +105,20 @@ struct SettingsView: View {
         }
         .frame(width: 440)
         .fixedSize(horizontal: false, vertical: true)
+        .preferredColorScheme(colorScheme)
         .onAppear {
             endpoint = settings.endpoint
             token = settings.token
             deepseekKey = settings.deepseekKey
             launchAtLogin = settings.launchAtLogin
+        }
+    }
+
+    private var colorScheme: ColorScheme? {
+        switch settings.theme {
+        case "dark": return .dark
+        case "light": return .light
+        default: return nil
         }
     }
 

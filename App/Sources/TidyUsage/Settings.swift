@@ -39,6 +39,14 @@ final class AppSettings: ObservableObject {
     @Published var hideDockIcon: Bool {
         didSet { defaults.set(hideDockIcon, forKey: "hideDockIcon") }
     }
+    /// 桌面主窗口背景不透明度 (0.2 ~ 1.0，默认 1.0 即标准毛玻璃)
+    @Published var backgroundOpacity: Double {
+        didSet { defaults.set(backgroundOpacity, forKey: "backgroundOpacity") }
+    }
+    /// 外观主题：system (跟随系统) / dark (深色) / light (浅色)
+    @Published var theme: String {
+        didSet { defaults.set(theme, forKey: "appTheme") }
+    }
     @Published private(set) var token: String
     @Published private(set) var deepseekKey: String
 
@@ -51,6 +59,9 @@ final class AppSettings: ObservableObject {
         showMainWindow = defaults.object(forKey: "showMainWindow") as? Bool ?? legacyVisible ?? true
         alwaysOnTop = defaults.object(forKey: "alwaysOnTop") as? Bool ?? true
         hideDockIcon = defaults.bool(forKey: "hideDockIcon")
+        let op = defaults.double(forKey: "backgroundOpacity")
+        backgroundOpacity = op >= 0.2 ? min(1.0, op) : 1.0
+        theme = defaults.string(forKey: "appTheme") ?? "system"
         token = Keychain.read() ?? ""
         deepseekKey = Keychain.read(account: "deepseek_key") ?? ""
     }

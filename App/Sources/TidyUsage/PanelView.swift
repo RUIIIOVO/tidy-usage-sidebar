@@ -45,12 +45,30 @@ struct PanelView: View {
         }
         .frame(width: 320)
         .ignoresSafeArea()
+        .preferredColorScheme(colorScheme)
+    }
+
+    private var colorScheme: ColorScheme? {
+        switch settings.theme {
+        case "dark": return .dark
+        case "light": return .light
+        default: return nil
+        }
     }
 }
 
 /// 主窗口顶部条：左侧让给红黄绿按钮，右侧是置顶开关，空白处可拖动窗口
 private struct WindowHeader: View {
     @ObservedObject var settings: AppSettings
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var pinColor: Color {
+        if settings.alwaysOnTop {
+            return colorScheme == .dark ? .white : .primary
+        } else {
+            return .secondary
+        }
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -61,13 +79,45 @@ private struct WindowHeader: View {
             } label: {
                 Image(systemName: settings.alwaysOnTop ? "pin.fill" : "pin")
                     .rotationEffect(.degrees(settings.alwaysOnTop ? 0 : 45))
-                    .foregroundStyle(settings.alwaysOnTop ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(pinColor)
             }
-            .buttonStyle(IconButtonStyle())
+            .buttonStyle(PinButtonStyle(active: settings.alwaysOnTop, pinColor: pinColor))
             .help(settings.alwaysOnTop ? "已固定在最前面 · 点击取消" : "固定在最前面")
         }
         .frame(height: 28)
         .background(WindowDragArea())
+    }
+}
+
+/// 顶部钉子按钮专用样式：激活时显示白色/主色填充，未激活时为半透明灰色
+private struct PinButtonStyle: ButtonStyle {
+    let active: Bool
+    let pinColor: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        PinButtonBody(configuration: configuration, active: active, pinColor: pinColor)
+    }
+
+    private struct PinButtonBody: View {
+        let configuration: Configuration
+        let active: Bool
+        let pinColor: Color
+        @State private var hovering = false
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(pinColor.opacity(hovering ? 1.0 : (active ? 0.95 : 0.7)))
+                .frame(width: 26, height: 24)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.primary.opacity(configuration.isPressed ? 0.14 : (hovering ? 0.08 : 0)))
+                )
+                .contentShape(Rectangle())
+                .onHover { hovering = $0 }
+                .pointingHandCursor()
+                .animation(.easeOut(duration: 0.1), value: hovering)
+        }
     }
 }
 

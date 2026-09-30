@@ -68,6 +68,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] hide in self?.applyDockIcon(hide: hide) }
             .store(in: &cancellables)
 
+        settings.$theme
+            .sink { [weak self] theme in self?.applyTheme(theme) }
+            .store(in: &cancellables)
+
         store.objectWillChange
             .merge(with: settings.objectWillChange)
             .debounce(for: .milliseconds(30), scheduler: RunLoop.main)
@@ -114,6 +118,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
             self?.settingsWindow?.makeKeyAndOrderFront(nil)
         }
+    }
+
+    private func applyTheme(_ theme: String) {
+        switch theme {
+        case "dark":
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        case "light":
+            NSApp.appearance = NSAppearance(named: .aqua)
+        default:
+            NSApp.appearance = nil
+        }
+        renderStatusItem()
     }
 
     @objc private func toggleMainWindow() {
