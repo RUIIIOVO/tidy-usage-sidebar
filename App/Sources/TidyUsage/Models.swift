@@ -317,3 +317,50 @@ enum ResetText {
         return "\(absolute.string(from: date)) 重置"
     }
 }
+
+/// 数据新鲜度的措辞。近期用相对时间（一眼看出新鲜度），跨天用绝对时间点
+/// （「23 小时前」远不如「昨天 15:35」好读）。
+enum UpdateText {
+    private static let clock: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    private static let dayClock: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日 HH:mm"
+        return f
+    }()
+
+    /// 刚刚 / 12 分钟前 / 5 小时前 / 昨天 15:35 / 9月28日 15:35
+    static func age(since date: Date, now: Date) -> String {
+        let secs = now.timeIntervalSince(date)
+        if secs < 60 { return "刚刚" }
+        if secs < 3600 { return "\(Int(secs / 60)) 分钟前" }
+        let cal = Calendar.current
+        if cal.isDate(date, inSameDayAs: now) { return "\(Int(secs / 3600)) 小时前" }
+        if cal.isDateInYesterday(date) { return "昨天 \(clock.string(from: date))" }
+        return dayClock.string(from: date)
+    }
+
+    /// 「……的数据」里的定语形式：刚才的 / 12 分钟前的 / 昨天 15:35 的
+    static func attributive(since date: Date, now: Date) -> String {
+        let a = age(since: date, now: now)
+        return a == "刚刚" ? "刚才的" : joined(a, "的")
+    }
+
+    /// 中文与数字之间补一个空格（仅数字开头时补，如「 12 分钟前」）
+    static func spaced(_ s: String) -> String {
+        guard let f = s.first, f.isASCII, f.isNumber else { return s }
+        return " " + s
+    }
+
+    /// 拼接时前段以数字结尾就补空格，避开「15:43更新」
+    static func joined(_ a: String, _ b: String) -> String {
+        guard let l = a.last, l.isASCII, l.isNumber else { return a + b }
+        return a + " " + b
+    }
+}

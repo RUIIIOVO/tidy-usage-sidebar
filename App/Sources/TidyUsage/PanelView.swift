@@ -197,21 +197,34 @@ private struct FooterView: View {
     let now: Date
     var openSettings: () -> Void
 
-    private static let timeFormat: DateFormatter = {
+    private static let preciseFormat: DateFormatter = {
         let f = DateFormatter()
-        f.dateFormat = "HH:mm"
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "HH:mm:ss"
         return f
     }()
 
+    /// 常态白点：只有异常（失败 / 缓存）才上色，保持整体单色
     private var status: (Color, String) {
-        let time = store.dataTime.map { Self.timeFormat.string(from: $0) }
-        if let err = store.errorMessage {
-            if let time { return (.orange, "更新失败 · 显示 \(time) 的数据") }
-            return (.red, err)
+        guard let date = store.dataTime else {
+            if let err = store.errorMessage { return (.red, err) }
+            return (.secondary, "等待数据")
         }
-        if store.serverStale, let time { return (.yellow, "缓存数据 · \(time)") }
-        if let time { return (.green, "\(time) 更新") }
-        return (.secondary, "等待数据")
+        let age = UpdateText.age(since: date, now: now)
+        if store.errorMessage != nil {
+            let attr = UpdateText.spaced(UpdateText.attributive(since: date, now: now))
+            return (.orange, "更新失败 · 显示\(attr)数据")
+        }
+        if store.serverStale { return (.yellow, "缓存数据 · \(age)") }
+        return (.primary, UpdateText.joined(age, "更新"))
+    }
+
+    /// 悬停显示精确时间，相对时间负责一眼看新鲜度，精确值负责到底是几点几分
+    private var helpText: String {
+        var parts: [String] = []
+        if let t = store.dataTime { parts.append("最后更新 \(Self.preciseFormat.string(from: t))") }
+        if let e = store.errorMessage { parts.append(e) }
+        return parts.joined(separator: "\n")
     }
 
     var body: some View {
@@ -219,7 +232,7 @@ private struct FooterView: View {
             HStack(spacing: 6) {
                 Circle().fill(status.0.opacity(0.85)).frame(width: 5, height: 5)
                 Text(status.1).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
-                    .help(store.errorMessage ?? "")
+                    .help(helpText)
             }
             Spacer()
             RefreshButton(store: store)
@@ -240,6 +253,8 @@ private struct FooterView: View {
                 Image(systemName: "power")
             }
             .buttonStyle(IconButtonStyle())
+            // 退出是终态动作，和 ↻ / ⚙ 拉开距离，避开误点
+            .padding(.leading, 8)
             .help("退出 Tidy Usage")
         }
         .font(.system(size: 12))
