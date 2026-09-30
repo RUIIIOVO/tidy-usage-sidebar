@@ -78,9 +78,10 @@ enum UsageClient {
             throw UsageError.server("DeepSeek 无余额信息")
         }
         let total = Double(info.total_balance) ?? 0
+        let granted = info.granted_balance.flatMap(Double.init)
         return RawWindow(provider: "deepseek", name: "balance", label: nil,
                          utilization: 0, resets_at: nil,
-                         balance: total, currency: info.currency)
+                         balance: total, currency: info.currency, granted: granted)
     }
 }
 
@@ -90,6 +91,8 @@ final class UsageStore: ObservableObject {
     @Published private(set) var emails: [String: String] = [:]
     /// 数据对应的查询时间（服务端 queried_at）
     @Published private(set) var dataTime: Date?
+    /// 服务端真正取到上游数据的时刻，仅用于悬停提示，不参与「N 分钟前」的计算
+    @Published private(set) var serverQueriedAt: Date?
     @Published private(set) var serverStale = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoading = false
@@ -207,27 +210,36 @@ final class UsageStore: ObservableObject {
         let main = await mainResult
         let ds = await dsResult
 
-        let queried = Date()
+        let now = Date()
         var freshWindows: [UsageWindow] = []
         var freshProviders = Set<String>()
         var mainOK = false
+        /// 本次面板/菜单栏该显示成「刚刚更新」的时刻。
+        /// 用客户端收到响应的时刻而不是服务端的 queried_at：
+        /// 服务端 TTL=60 缓存命中时 queried_at 是不变的，用手动刷新点了时间也不动。
+        /// 只有服务端自报 stale（上游本轮没取到、发的旧 payload）时，
+        /// 才改用 queried_at，否则会把陈旧数据说成「刚刚」。
+        var freshAt: Date?
 
         // 主端点
         if case .success(let body) = main {
             let ws = (body.windows ?? []).map(UsageWindow.init(raw:))
             freshWindows.append(contentsOf: ws)
-            let bodyQueried = body.queried_at.map { Date(timeIntervalSince1970: $0) } ?? queried
+            let bodyQueried = body.queried_at.map { Date(timeIntervalSince1970: $0) }
+            if let bodyQueried { serverQueriedAt = bodyQueried }
             for p in Set(ws.map(\.provider)) {
                 freshProviders.insert(p)
-                lastGoodAt[p] = bodyQueried
+                lastGoodAt[p] = now
             }
             providerErrors = body.errors ?? [:]
             var mails = emails
             for (k, v) in body.emails ?? [:] { if let v { mails[k] = v } }
             if mails["claude"] == nil, let e = body.email { mails["claude"] = e }
             emails = mails
-            serverStale = body.stale ?? false
-            dataTime = bodyQueried
+            let stale = body.stale ?? false
+            serverStale = stale
+            freshAt = stale ? (bodyQueried ?? now) : now
+            dataTime = freshAt
             mainOK = true
         }
 
@@ -236,8 +248,13 @@ final class UsageStore: ObservableObject {
         case .success(let raw):
             freshWindows.append(UsageWindow(raw: raw))
             freshProviders.insert("deepseek")
-            lastGoodAt["deepseek"] = queried
+            lastGoodAt["deepseek"] = now
             deepseekError = nil
+            // 主端点整家失败时，只要有任一家真的刷成功了，时间就得跟着走
+            if freshAt == nil {
+                freshAt = now
+                dataTime = now
+            }
         case .failure(let err):
             if case UsageError.noToken = err {
                 deepseekError = nil   // 没填 Key 不算错误

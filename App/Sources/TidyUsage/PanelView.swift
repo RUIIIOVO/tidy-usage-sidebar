@@ -1,6 +1,17 @@
 import AppKit
 import SwiftUI
 
+/// 行内竖直间距的单一出处。余额行没有进度条，
+/// 靠这里的常量把它的说明行放到与其它行「重置时间」相同的高度。
+private enum Metrics {
+    static let barTopGap: CGFloat = 6
+    static let barHeight: CGFloat = 4
+    static let noteTopGap: CGFloat = 5
+    static let rowPadding: CGFloat = 7
+    /// 没有进度条时，说明行要跳过进度条占的那段高度
+    static let noteTopGapWithoutBar = barTopGap + barHeight + noteTopGap
+}
+
 /// 点开菜单栏后的面板
 struct PanelView: View {
     @ObservedObject var store: UsageStore
@@ -39,9 +50,11 @@ private struct SectionView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 7) {
                 if let logo = ProviderInfo.logo(section.id) {
+                    // 固定宽度的图标列：各家宽高比不同，按最宽的一个预留，
+                    // 这样图标不会溢出挤到标题，各分组的标题左边缘也保持一致
                     LogoShape(logo: logo)
                         .fill(logo.brand ?? .primary, style: FillStyle(eoFill: logo.evenOdd))
-                        .frame(width: 14, height: 14)
+                        .frame(width: 14 * ProviderInfo.maxLogoAspect, height: 14)
                 }
                 Text(section.title).font(.system(size: 13, weight: .semibold))
                 Spacer(minLength: 8)
@@ -53,7 +66,7 @@ private struct SectionView: View {
             ForEach(section.groups) { group in
                 if let title = group.title {
                     Text(title)
-                        .font(.system(size: 10.5, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 6)
                         .padding(.top, 6)
@@ -81,6 +94,13 @@ private struct RowView: View {
     private var accent: Color { w.level.color ?? .primary }
     private var isBalance: Bool { w.kind == .balance }
 
+    /// 余额行只有一个数值，缺少进度条和重置时间这两行内容，
+    /// 所以用「含赠金」作为第二行——赠金会过期、充值余额不会，
+    /// 这是余额唯一值得关心的额外信息，也让这行的结构与其它行一致。
+    private var grantedText: String {
+        String(format: "含赠金 ¥%.2f", w.granted ?? 0)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -92,7 +112,7 @@ private struct RowView: View {
                     // 余额：¥42.50
                     HStack(alignment: .firstTextBaseline, spacing: 1) {
                         Text("\u{00A5}")
-                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
                             .foregroundStyle(.secondary)
                         Text(String(format: "%.2f", w.balance ?? 0))
                             .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -106,26 +126,35 @@ private struct RowView: View {
                             .monospacedDigit()
                             .foregroundStyle(.primary)
                         Text("%")
-                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-            if !isBalance {
-                ProgressBar(fraction: w.used / 100, color: accent)
-                    .padding(.top, 6)
-                Text(ResetText.text(for: w, now: now))
-                    .font(.system(size: 10.5))
+            if isBalance {
+                // 和重置时间同一高度，跨分组的次要文字能横向对齐
+                Text(grantedText)
+                    .font(.system(size: 11))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .padding(.top, 5)
+                    .padding(.top, Metrics.noteTopGapWithoutBar)
+                    .opacity(w.granted == nil ? 0 : 1)
+            } else {
+                ProgressBar(fraction: w.used / 100, color: accent)
+                    .padding(.top, Metrics.barTopGap)
+                Text(ResetText.text(for: w, now: now))
+                    .font(.system(size: 11))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .padding(.top, Metrics.noteTopGap)
             }
         }
         // 未显示在菜单栏的行整体变淡；悬停时稍微提亮，提示可点击
         .opacity(pinned ? 1 : (hovering ? 0.7 : 0.45))
         .padding(.horizontal, 6)
-        .padding(.vertical, 7)
+        .padding(.vertical, Metrics.rowPadding)
         .background(
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .fill(Color.primary.opacity(hovering ? 0.05 : 0))
@@ -156,7 +185,7 @@ struct ProgressBar: View {
                     .frame(width: fraction > 0 ? max(4, geo.size.width * min(1, fraction)) : 0)
             }
         }
-        .frame(height: 4)
+        .frame(height: Metrics.barHeight)
     }
 }
 
@@ -178,10 +207,10 @@ private struct EmptyStateView: View {
         VStack(spacing: 10) {
             if store.isLoading {
                 ProgressView().controlSize(.small)
-                Text("正在获取额度…").font(.system(size: 12)).foregroundStyle(.secondary)
+                Text("正在获取额度…").font(.system(size: 12.5)).foregroundStyle(.secondary)
             } else {
                 Text(store.errorMessage ?? "暂无数据")
-                    .font(.system(size: 12))
+                    .font(.system(size: 12.5))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                 Button("打开设置", action: openSettings).controlSize(.small)
@@ -222,7 +251,8 @@ private struct FooterView: View {
     /// 悬停显示精确时间，相对时间负责一眼看新鲜度，精确值负责到底是几点几分
     private var helpText: String {
         var parts: [String] = []
-        if let t = store.dataTime { parts.append("最后更新 \(Self.preciseFormat.string(from: t))") }
+        if let t = store.dataTime { parts.append("最后刷新 \(Self.preciseFormat.string(from: t))") }
+        if let q = store.serverQueriedAt { parts.append("服务端取数 \(Self.preciseFormat.string(from: q))") }
         if let e = store.errorMessage { parts.append(e) }
         return parts.joined(separator: "\n")
     }
@@ -256,7 +286,7 @@ private struct FooterView: View {
             .buttonStyle(IconButtonStyle())
             .help("退出 Tidy Usage")
         }
-        .font(.system(size: 12))
+        .font(.system(size: 11))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 6)
         .padding(.top, 9)

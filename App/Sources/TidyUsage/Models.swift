@@ -24,12 +24,15 @@ struct RawWindow: Codable {
     // DeepSeek 余额
     let balance: Double?
     let currency: String?
+    /// 其中赠送金额（会过期），用于余额行的第二行说明
+    let granted: Double?
 
     init(provider: String?, name: String, label: String?, utilization: Double,
-         resets_at: String?, balance: Double? = nil, currency: String? = nil) {
+         resets_at: String?, balance: Double? = nil, currency: String? = nil,
+         granted: Double? = nil) {
         self.provider = provider; self.name = name; self.label = label
         self.utilization = utilization; self.resets_at = resets_at
-        self.balance = balance; self.currency = currency
+        self.balance = balance; self.currency = currency; self.granted = granted
     }
 }
 
@@ -47,6 +50,7 @@ struct UsageWindow: Identifiable, Hashable {
     let resetsAt: Date?
     let balance: Double?      // 余额（仅 balance 类型）
     let currency: String?     // 货币（仅 balance 类型）
+    let granted: Double?      // 其中赠送金额（仅 balance 类型）
 
     var kind: Kind {
         if name == "balance" { return .balance }
@@ -82,7 +86,7 @@ struct UsageWindow: Identifiable, Hashable {
     var raw: RawWindow {
         RawWindow(provider: provider, name: name, label: label, utilization: used,
                   resets_at: resetsAt.map { DateParsing.format($0) },
-                  balance: balance, currency: currency)
+                  balance: balance, currency: currency, granted: granted)
     }
 
     init(raw: RawWindow) {
@@ -94,6 +98,7 @@ struct UsageWindow: Identifiable, Hashable {
         self.resetsAt = raw.resets_at.flatMap(DateParsing.parse)
         self.balance = raw.balance
         self.currency = raw.currency
+        self.granted = raw.granted
         self.id = UsageWindow.makeID(provider: provider, label: raw.label, name: raw.name)
     }
 
@@ -250,6 +255,19 @@ enum ProviderInfo {
                 .scaledBy(x: scale, y: scale)
             return p.copy(using: &t) ?? p
         }
+
+        /// 归一化后的宽高比。排版时按最宽的一个预留图标列，
+        /// 否则宽图形（鲸鱼）会溢出自己的框、把与标题的间距吃掉。
+        var aspect: CGFloat {
+            let b = path.boundingBox
+            guard b.height > 0 else { return 1 }
+            return b.width / b.height
+        }
+    }
+
+    /// 所有 logo 里最大的宽高比，用于给出统一的图标列宽
+    static var maxLogoAspect: CGFloat {
+        [claudeLogo, antigravityLogo, deepseekLogo].map(\.aspect).max() ?? 1
     }
 
     private static let claudeLogo = Logo(
