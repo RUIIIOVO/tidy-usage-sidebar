@@ -80,7 +80,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let sections = store.sections
         let groups = MenuBarIcon.groups(windows: store.windows, sections: sections, pinned: settings.pinned)
         let dimmed = store.errorMessage != nil || !store.hasData
-        button.image = MenuBarIcon.image(groups: groups, dimmed: dimmed)
+        let empty: MenuBarIcon.EmptyState =
+            store.errorMessage != nil ? .error : (store.hasData ? .idle : .loading)
+        button.image = MenuBarIcon.image(groups: groups, dimmed: dimmed, emptyState: empty)
         button.toolTip = tooltip(groups: groups)
     }
 

@@ -27,8 +27,10 @@ enum MenuBarIcon {
     }
 
     /// dimmed：数据过期或请求失败时整体降低不透明度
-    static func image(groups: [Group], dimmed: Bool) -> NSImage {
-        if groups.isEmpty { return placeholder(dimmed: dimmed) }
+    enum EmptyState { case idle, loading, error }
+
+    static func image(groups: [Group], dimmed: Bool, emptyState: EmptyState = .idle) -> NSImage {
+        if groups.isEmpty { return placeholder(emptyState) }
 
         var width: CGFloat = 0
         for (i, g) in groups.enumerated() {
@@ -64,12 +66,39 @@ enum MenuBarIcon {
         return image
     }
 
-    private static func placeholder(dimmed: Bool) -> NSImage {
-        let image = NSImage(size: NSSize(width: ringSize, height: height), flipped: true) { _ in
-            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
-            ctx.setAlpha(dimmed ? 0.45 : 1)
-            drawRing(used: 0, glyph: "–", color: baseColor(),
-                     in: CGRect(x: 0, y: (height - ringSize) / 2, width: ringSize, height: ringSize), ctx: ctx)
+    /// 空状态：SF Symbol gauge.with.needle（模板图，系统自动适配深浅与高亮）
+    /// - idle：有数据但没钉任何环
+    /// - loading：还没拿到数据 → 淡
+    /// - error：请求失败 → 右上角橙点（此时需非模板图才能保留橙色）
+    private static func placeholder(_ state: EmptyState) -> NSImage {
+        let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        guard let symbol = NSImage(systemSymbolName: "gauge.with.needle", accessibilityDescription: "Tidy Usage")?
+            .withSymbolConfiguration(cfg) else { return NSImage() }
+
+        if state == .idle {
+            symbol.isTemplate = true
+            return symbol
+        }
+
+        let sz = symbol.size
+        let badge: CGFloat = 5.5
+        let width = ceil(sz.width + (state == .error ? 2 : 0))
+        let image = NSImage(size: NSSize(width: width, height: height), flipped: false) { _ in
+            let base = baseColor().withAlphaComponent(state == .loading ? 0.45 : 1)
+            let rect = NSRect(x: 0, y: (height - sz.height) / 2, width: sz.width, height: sz.height)
+            // 先画符号再用前景色 sourceAtop 着色
+            let tinted = NSImage(size: sz, flipped: false) { r in
+                symbol.draw(in: r)
+                base.set()
+                r.fill(using: .sourceAtop)
+                return true
+            }
+            tinted.draw(in: rect)
+            if state == .error {
+                NSColor.systemOrange.setFill()
+                NSBezierPath(ovalIn: NSRect(x: width - badge, y: rect.maxY - badge + 0.5,
+                                            width: badge, height: badge)).fill()
+            }
             return true
         }
         image.isTemplate = false
