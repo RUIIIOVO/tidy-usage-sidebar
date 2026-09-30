@@ -50,11 +50,9 @@ private struct SectionView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 7) {
                 if let logo = ProviderInfo.logo(section.id) {
-                    // 固定宽度的图标列：各家宽高比不同，按最宽的一个预留，
-                    // 这样图标不会溢出挤到标题，各分组的标题左边缘也保持一致
                     LogoShape(logo: logo)
                         .fill(logo.brand ?? .primary, style: FillStyle(eoFill: logo.evenOdd))
-                        .frame(width: 14 * ProviderInfo.maxLogoAspect, height: 14)
+                        .frame(width: 14, height: 14)
                 }
                 Text(section.title).font(.system(size: 13, weight: .semibold))
                 Spacer(minLength: 8)
@@ -94,9 +92,11 @@ private struct RowView: View {
     private var accent: Color { w.level.color ?? .primary }
     private var isBalance: Bool { w.kind == .balance }
 
-    /// 余额行只有一个数值，缺少进度条和重置时间这两行内容，
-    /// 所以用「含赠金」作为第二行——赠金会过期、充值余额不会，
-    /// 这是余额唯一值得关心的额外信息，也让这行的结构与其它行一致。
+    private var hasGranted: Bool {
+        if let g = w.granted, g > 0 { return true }
+        return false
+    }
+
     private var grantedText: String {
         String(format: "含赠金 ¥%.2f", w.granted ?? 0)
     }
@@ -132,14 +132,14 @@ private struct RowView: View {
                 }
             }
             if isBalance {
-                // 和重置时间同一高度，跨分组的次要文字能横向对齐
-                Text(grantedText)
-                    .font(.system(size: 11))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .padding(.top, Metrics.noteTopGapWithoutBar)
-                    .opacity(w.granted == nil ? 0 : 1)
+                if hasGranted {
+                    Text(grantedText)
+                        .font(.system(size: 11))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .padding(.top, Metrics.noteTopGapWithoutBar)
+                }
             } else {
                 ProgressBar(fraction: w.used / 100, color: accent)
                     .padding(.top, Metrics.barTopGap)
@@ -193,8 +193,13 @@ struct LogoShape: Shape {
     let logo: ProviderInfo.Logo
 
     func path(in rect: CGRect) -> Path {
-        var t = CGAffineTransform(translationX: rect.minX, y: rect.minY)
-            .scaledBy(x: rect.width / 24, y: rect.height / 24)
+        // 严格等比缩放居中，绝不拉伸变形
+        let side = min(rect.width, rect.height)
+        let scale = side / 24
+        let offsetX = rect.minX + (rect.width - 24 * scale) / 2
+        let offsetY = rect.minY + (rect.height - 24 * scale) / 2
+        var t = CGAffineTransform(translationX: offsetX, y: offsetY)
+            .scaledBy(x: scale, y: scale)
         return Path(logo.path.copy(using: &t) ?? logo.path)
     }
 }

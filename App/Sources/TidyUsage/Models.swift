@@ -255,19 +255,6 @@ enum ProviderInfo {
                 .scaledBy(x: scale, y: scale)
             return p.copy(using: &t) ?? p
         }
-
-        /// 归一化后的宽高比。排版时按最宽的一个预留图标列，
-        /// 否则宽图形（鲸鱼）会溢出自己的框、把与标题的间距吃掉。
-        var aspect: CGFloat {
-            let b = path.boundingBox
-            guard b.height > 0 else { return 1 }
-            return b.width / b.height
-        }
-    }
-
-    /// 所有 logo 里最大的宽高比，用于给出统一的图标列宽
-    static var maxLogoAspect: CGFloat {
-        [claudeLogo, antigravityLogo, deepseekLogo].map(\.aspect).max() ?? 1
     }
 
     private static let claudeLogo = Logo(
