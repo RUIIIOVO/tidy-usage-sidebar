@@ -54,6 +54,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 windowMode: true),
             settings: settings)
 
+        settings.$showMainWindow.dropFirst().removeDuplicates()
+            .sink { [weak self] show in
+                if show {
+                    self?.mainWindow.show()
+                } else {
+                    self?.mainWindow.close()
+                }
+            }
+            .store(in: &cancellables)
+
         settings.$hideDockIcon.dropFirst().removeDuplicates()
             .sink { [weak self] hide in self?.applyDockIcon(hide: hide) }
             .store(in: &cancellables)
@@ -71,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         renderStatusItem()
         store.startPolling()
 
-        if settings.mainWindowVisible {
+        if settings.showMainWindow {
             mainWindow.show()
         }
         if settings.token.isEmpty && !settings.endpoint.contains("token=") {
@@ -83,12 +93,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 点 Dock 图标 / 再次打开 App：显示主窗口
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        showMainWindow()
+        panel.close()
+        store.refreshIfStale()
+        settings.showMainWindow = true
+        mainWindow.show()
         return false
     }
 
     /// 关掉主窗口不退出，菜单栏照常工作
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        mainWindow?.saveFrame()
+    }
 
     private func applyDockIcon(hide: Bool) {
         NSApp.setActivationPolicy(hide ? .accessory : .regular)
@@ -99,9 +116,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc private func toggleMainWindow() {
+        panel.close()
+        settings.showMainWindow.toggle()
+        if settings.showMainWindow {
+            store.refreshIfStale()
+            mainWindow.show()
+        }
+    }
+
     @objc private func showMainWindow() {
         panel.close()
         store.refreshIfStale()
+        settings.showMainWindow = true
         mainWindow.show()
     }
 
@@ -167,10 +194,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showContextMenu() {
         let menu = NSMenu()
-        menu.addItem(withTitle: "显示主窗口", action: #selector(showMainWindow), keyEquivalent: "").target = self
+        let showTitle = settings.showMainWindow ? "隐藏桌面主窗口" : "显示桌面主窗口"
+        menu.addItem(withTitle: showTitle, action: #selector(toggleMainWindow), keyEquivalent: "0").target = self
         let onTop = menu.addItem(withTitle: "固定在最前面", action: #selector(toggleAlwaysOnTop), keyEquivalent: "")
         onTop.target = self
         onTop.state = settings.alwaysOnTop ? .on : .off
+        onTop.isEnabled = settings.showMainWindow
         menu.addItem(.separator())
         menu.addItem(withTitle: "刷新", action: #selector(refreshNow), keyEquivalent: "r").target = self
         menu.addItem(withTitle: "设置…", action: #selector(openSettingsAction), keyEquivalent: ",").target = self
@@ -225,7 +254,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         main.addItem(windowItem)
         let windowMenu = NSMenu(title: "窗口")
         windowMenu.delegate = self
-        windowMenu.addItem(withTitle: "显示主窗口", action: #selector(showMainWindow), keyEquivalent: "0").target = self
+        let showItem = windowMenu.addItem(withTitle: "显示桌面主窗口", action: #selector(toggleMainWindow), keyEquivalent: "0")
+        showItem.target = self
+        showItem.tag = MenuTag.showMainWindow
         let onTop = windowMenu.addItem(withTitle: "固定在最前面", action: #selector(toggleAlwaysOnTop), keyEquivalent: "t")
         onTop.keyEquivalentModifierMask = [.command, .option]
         onTop.target = self
@@ -239,7 +270,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = main
     }
 
-    private enum MenuTag { static let alwaysOnTop = 1001 }
+    private enum MenuTag {
+        static let showMainWindow = 1000
+        static let alwaysOnTop = 1001
+    }
 
     // MARK: - 设置窗口
 
@@ -262,8 +296,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension AppDelegate: NSMenuDelegate {
-    /// 打开「窗口」菜单时同步「固定在最前面」的勾选状态
+    /// 打开「窗口」菜单时同步菜单项的状态
     func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.item(withTag: MenuTag.alwaysOnTop)?.state = settings.alwaysOnTop ? .on : .off
+        menu.item(withTag: MenuTag.showMainWindow)?.state = settings.showMainWindow ? .on : .off
+        let onTopItem = menu.item(withTag: MenuTag.alwaysOnTop)
+        onTopItem?.state = settings.alwaysOnTop ? .on : .off
+        onTopItem?.isEnabled = settings.showMainWindow
     }
 }

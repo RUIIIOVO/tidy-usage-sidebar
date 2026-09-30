@@ -29,7 +29,8 @@ struct PanelView: View {
                 if store.hasData {
                     ForEach(Array(store.sections.enumerated()), id: \.element.id) { index, section in
                         if index > 0 { Spacer().frame(height: 4) }
-                        SectionView(section: section, settings: settings, now: timeline.date)
+                        SectionView(section: section, settings: settings, now: timeline.date,
+                                    isFirst: index == 0, windowMode: windowMode)
                     }
                 } else {
                     EmptyStateView(store: store, openSettings: openSettings)
@@ -39,10 +40,11 @@ struct PanelView: View {
                 FooterView(store: store, now: timeline.date, openSettings: openSettings)
             }
             .padding(.horizontal, 10)
-            .padding(.top, 4)
+            .padding(.top, windowMode ? 0 : 4)
             .padding(.bottom, 8)
         }
         .frame(width: 320)
+        .ignoresSafeArea()
     }
 }
 
@@ -66,7 +68,6 @@ private struct WindowHeader: View {
         }
         .frame(height: 28)
         .background(WindowDragArea())
-        .padding(.top, 2)
     }
 }
 
@@ -86,6 +87,8 @@ private struct SectionView: View {
     let section: ProviderSection
     @ObservedObject var settings: AppSettings
     let now: Date
+    var isFirst = false
+    var windowMode = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -99,7 +102,7 @@ private struct SectionView: View {
                 Spacer(minLength: 8)
             }
             .padding(.horizontal, 6)
-            .padding(.top, 12)
+            .padding(.top, isFirst ? (windowMode ? 4 : 8) : 12)
             .padding(.bottom, 4)
 
             ForEach(section.groups) { group in
