@@ -12,13 +12,14 @@ struct PanelView: View {
             VStack(alignment: .leading, spacing: 0) {
                 if store.hasData {
                     ForEach(Array(store.sections.enumerated()), id: \.element.id) { index, section in
-                        if index > 0 { Divider().opacity(0.6).padding(.horizontal, 6) }
+                        if index > 0 { Spacer().frame(height: 4) }
                         SectionView(section: section, settings: settings, now: timeline.date)
                     }
                 } else {
                     EmptyStateView(store: store, openSettings: openSettings)
                 }
-                Divider().opacity(0.6).padding(.horizontal, 6)
+                Rectangle().fill(Color.primary.opacity(0.06)).frame(height: 0.5)
+                    .padding(.horizontal, 6).padding(.top, 2)
                 FooterView(store: store, now: timeline.date, openSettings: openSettings)
             }
             .padding(.horizontal, 10)
@@ -79,25 +80,16 @@ private struct RowView: View {
     private var w: UsageWindow { row.window }
     private var accent: Color { w.level.color ?? .primary }
 
-    /// 标题列固定宽度，保证每行的重置时间从同一条竖线开始
-    static let titleWidth: CGFloat = 92
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(row.title)
                     .font(.system(size: 12.5, weight: .medium))
-                    .lineLimit(1)
-                    .frame(width: Self.titleWidth, alignment: .leading)
-                Text(ResetText.text(for: w, now: now))
-                    .font(.system(size: 11))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text("\(Int(w.used.rounded()))")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(accent)
                     Text("%")
@@ -106,6 +98,13 @@ private struct RowView: View {
                 }
             }
             ProgressBar(fraction: w.used / 100, color: accent)
+                .padding(.top, 6)
+            Text(ResetText.text(for: w, now: now))
+                .font(.system(size: 10.5))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .padding(.top, 5)
         }
         // 未显示在菜单栏的行整体变淡；悬停时稍微提亮，提示可点击
         .opacity(pinned ? 1 : (hovering ? 0.7 : 0.45))

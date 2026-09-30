@@ -34,12 +34,6 @@ struct SettingsView: View {
                 }
                 Toggle("登录时启动", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, v in settings.launchAtLogin = v }
-                HStack {
-                    Text("菜单栏显示")
-                    Spacer()
-                    Text("在面板里点击每行前面的小环切换").foregroundStyle(.secondary).font(.callout)
-                }
-                Button("恢复默认显示") { settings.resetPinned() }
             }
         }
         .formStyle(.grouped)

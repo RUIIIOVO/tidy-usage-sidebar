@@ -57,6 +57,10 @@ final class UsageStore: ObservableObject {
     @Published private(set) var serverStale = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoading = false
+    /// 某家本次请求失败时，沿用它上次成功的数据；这里记录那份数据的时间
+    @Published private(set) var providerStaleSince: [String: Date] = [:]
+    @Published private(set) var providerErrors: [String: String] = [:]
+    private var lastGoodAt: [String: Date] = [:]
 
     private(set) var lastAttempt: Date?
     private let settings: AppSettings
@@ -71,7 +75,9 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    var sections: [ProviderSection] { Sections.build(windows: windows, emails: emails) }
+    var sections: [ProviderSection] {
+        Sections.build(windows: windows, emails: emails, staleSince: providerStaleSince)
+    }
     var hasData: Bool { !windows.isEmpty }
 
     func startPolling() {
@@ -98,13 +104,29 @@ final class UsageStore: ObservableObject {
         defer { isLoading = false }
         do {
             let body = try await UsageClient.fetch(endpoint: settings.endpoint, token: settings.token)
-            windows = (body.windows ?? []).map(UsageWindow.init(raw:))
-            var mails: [String: String] = [:]
+            let fresh = (body.windows ?? []).map(UsageWindow.init(raw:))
+            let queried = body.queried_at.map { Date(timeIntervalSince1970: $0) } ?? Date()
+            let freshProviders = Set(fresh.map(\.provider))
+            for p in freshProviders { lastGoodAt[p] = queried }
+
+            // 一家失败（常见：Anthropic 额度接口 429 限流）不应让它从面板和菜单栏消失，
+            // 沿用它上一次的窗口并标记为旧数据
+            var merged = fresh
+            var staleSince: [String: Date] = [:]
+            for p in Set(windows.map(\.provider)).subtracting(freshProviders) {
+                merged += windows.filter { $0.provider == p }
+                staleSince[p] = lastGoodAt[p]
+            }
+            windows = merged
+            providerStaleSince = staleSince
+            providerErrors = body.errors ?? [:]
+
+            var mails = emails
             for (k, v) in body.emails ?? [:] { if let v { mails[k] = v } }
             if mails["claude"] == nil, let e = body.email { mails["claude"] = e }
             emails = mails
             serverStale = body.stale ?? false
-            dataTime = body.queried_at.map { Date(timeIntervalSince1970: $0) } ?? Date()
+            dataTime = queried
             errorMessage = nil
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

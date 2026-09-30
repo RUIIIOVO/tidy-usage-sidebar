@@ -6,6 +6,8 @@ enum MenuBarIcon {
     struct Group {
         let provider: String
         let windows: [UsageWindow]
+        /// 这家本次拿到的是旧数据 → 这一组画淡
+        var stale = false
     }
 
     // 尺寸对齐系统菜单栏图标（Wi-Fi / 控制中心等内容高 12.5–16pt）
@@ -20,7 +22,7 @@ enum MenuBarIcon {
     static func groups(windows: [UsageWindow], sections: [ProviderSection], pinned: [String]) -> [Group] {
         sections.compactMap { section in
             let ws = section.rows.map(\.window).filter { pinned.contains($0.id) }
-            return ws.isEmpty ? nil : Group(provider: section.id, windows: ws)
+            return ws.isEmpty ? nil : Group(provider: section.id, windows: ws, stale: section.staleSince != nil)
         }
     }
 
@@ -43,6 +45,7 @@ enum MenuBarIcon {
             var x: CGFloat = 0
             for (i, g) in groups.enumerated() {
                 if i > 0 { x += groupGap }
+                ctx.setAlpha(dimmed || g.stale ? 0.45 : 1)
                 if let logo = ProviderInfo.logo(g.provider) {
                     drawLogo(logo, in: CGRect(x: x, y: (height - logoSize) / 2, width: logoSize, height: logoSize),
                              color: base, ctx: ctx)

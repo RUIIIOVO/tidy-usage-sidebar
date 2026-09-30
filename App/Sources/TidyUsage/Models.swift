@@ -10,6 +10,8 @@ struct UsageResponse: Decodable {
     let windows: [RawWindow]?
     let stale: Bool?
     let error: String?
+    /// 各服务商单独的失败原因（如 claude: anthropic HTTP 429）
+    let errors: [String: String]?
     let queried_at: Double?
 }
 
@@ -114,6 +116,8 @@ struct ProviderSection: Identifiable {
     let title: String
     let email: String?
     let groups: [RowGroup]
+    /// 本次没拿到，显示的是这个时间点的旧数据
+    var staleSince: Date? = nil
 
     var rows: [DisplayRow] { groups.flatMap(\.rows) }
 }
@@ -121,7 +125,8 @@ struct ProviderSection: Identifiable {
 enum Sections {
     static let providerOrder = ["claude", "antigravity"]
 
-    static func build(windows: [UsageWindow], emails: [String: String]) -> [ProviderSection] {
+    static func build(windows: [UsageWindow], emails: [String: String],
+                      staleSince: [String: Date] = [:]) -> [ProviderSection] {
         var providers: [String] = []
         for w in windows where !providers.contains(w.provider) { providers.append(w.provider) }
         providers.sort { rank($0) < rank($1) }
@@ -145,7 +150,8 @@ enum Sections {
                     return RowGroup(id: "\(p)|\(label)", title: label.isEmpty ? nil : label, rows: rows)
                 }
             }
-            return ProviderSection(id: p, title: ProviderInfo.title(p), email: emails[p], groups: groups)
+            return ProviderSection(id: p, title: ProviderInfo.title(p), email: emails[p], groups: groups,
+                                   staleSince: staleSince[p])
         }
     }
 
@@ -223,6 +229,14 @@ enum DateParsing {
 }
 
 enum ResetText {
+    private static let absolute: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日 HH:mm"
+        return f
+    }()
+
+    /// 24 小时内显示倒计时（2 小时 6 分后重置），更远的显示具体时间（10月2日 10:00 重置）
     static func text(for w: UsageWindow, now: Date) -> String {
         guard let date = w.resetsAt, w.used > 0 else { return "未开始计时" }
         let mins = Int((date.timeIntervalSince(now) / 60).rounded())
@@ -230,7 +244,6 @@ enum ResetText {
         if mins < 60 { return "\(mins) 分钟后重置" }
         let h = mins / 60, m = mins % 60
         if h < 24 { return m > 0 ? "\(h) 小时 \(m) 分后重置" : "\(h) 小时后重置" }
-        let d = h / 24, rh = h % 24
-        return rh > 0 ? "\(d) 天 \(rh) 小时后重置" : "\(d) 天后重置"
+        return "\(absolute.string(from: date)) 重置"
     }
 }
