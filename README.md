@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/logo.png" width="128" alt="Tidy Usage">
+
 # Tidy Usage
 
 **轻量、克制、原生的 macOS 菜单栏 AI 额度看板**

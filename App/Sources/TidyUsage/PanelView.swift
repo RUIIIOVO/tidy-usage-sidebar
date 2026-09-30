@@ -235,7 +235,7 @@ private struct FooterView: View {
 
             Button {
                 guard Throttle.allow("quit", interval: 1) else { return }
-                NSApp.terminate(nil)
+                confirmQuit()
             } label: {
                 Image(systemName: "power")
             }
@@ -246,6 +246,21 @@ private struct FooterView: View {
         .foregroundStyle(.secondary)
         .padding(.horizontal, 6)
         .padding(.top, 9)
+    }
+}
+
+/// 退出前二次确认
+@MainActor
+private func confirmQuit() {
+    let alert = NSAlert()
+    alert.messageText = "退出 Tidy Usage？"
+    alert.informativeText = "退出后菜单栏将不再显示额度。"
+    alert.alertStyle = .informational
+    alert.addButton(withTitle: "退出")
+    alert.addButton(withTitle: "取消")
+    NSApp.activate(ignoringOtherApps: true)
+    if alert.runModal() == .alertFirstButtonReturn {
+        NSApp.terminate(nil)
     }
 }
 

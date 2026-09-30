@@ -30,10 +30,8 @@ struct SettingsView: View {
             }
 
             Section("DeepSeek") {
-                SecureField("API Key", text: $deepseekKey, prompt: Text("sk-... · 存放在钥匙串"))
+                SecureField("API Key", text: $deepseekKey, prompt: Text("sk-..."))
                     .onChange(of: deepseekKey) { _, v in settings.setDeepseekKey(v) }
-                Text("直接调用 DeepSeek 官方余额接口，无需经过中继服务。")
-                    .font(.caption).foregroundStyle(.tertiary)
             }
 
             Section("行为") {
