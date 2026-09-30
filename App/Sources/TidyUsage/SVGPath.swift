@@ -94,6 +94,15 @@ enum SVGPath {
                 path.addCurve(to: p, control1: c1, control2: c2)
                 current = p
                 lastCubicControl = c2
+            case "A", "a":
+                guard hasNumbers(7) else { i += 1; continue }
+                let rx = take(), ry = take(), rot = take()
+                let large = take() != 0, sweep = take() != 0
+                let p = CGPoint(x: base.x + take(), y: base.y + take())
+                addArc(to: path, from: current, to: p, rx: rx, ry: ry,
+                       rotation: rot, large: large, sweep: sweep)
+                current = p
+                lastCubicControl = nil
             case "Q", "q":
                 guard hasNumbers(4) else { i += 1; continue }
                 let c = CGPoint(x: base.x + take(), y: base.y + take())
@@ -106,6 +115,57 @@ enum SVGPath {
             }
         }
         return path
+    }
+
+    /// SVG 椭圆弧（endpoint 参数化）转成三次贝塞尔曲线，对应 SVG 规范 F.6.5。
+    private static func addArc(to path: CGMutablePath, from p0: CGPoint, to p1: CGPoint,
+                               rx rxIn: CGFloat, ry ryIn: CGFloat, rotation: CGFloat,
+                               large: Bool, sweep: Bool) {
+        var rx = abs(rxIn), ry = abs(ryIn)
+        if p0 == p1 { return }
+        if rx == 0 || ry == 0 { path.addLine(to: p1); return }
+        let phi = rotation * .pi / 180
+        let cosPhi = cos(phi), sinPhi = sin(phi)
+        let dx = (p0.x - p1.x) / 2, dy = (p0.y - p1.y) / 2
+        let x1p = cosPhi * dx + sinPhi * dy
+        let y1p = -sinPhi * dx + cosPhi * dy
+        let lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
+        if lambda > 1 { let s = sqrt(lambda); rx *= s; ry *= s }
+        let num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p
+        let den = rx * rx * y1p * y1p + ry * ry * x1p * x1p
+        var coef = den == 0 ? 0 : sqrt(max(0, num / den))
+        if large == sweep { coef = -coef }
+        let cxp = coef * rx * y1p / ry
+        let cyp = -coef * ry * x1p / rx
+        let cx = cosPhi * cxp - sinPhi * cyp + (p0.x + p1.x) / 2
+        let cy = sinPhi * cxp + cosPhi * cyp + (p0.y + p1.y) / 2
+
+        func angle(_ ux: CGFloat, _ uy: CGFloat, _ vx: CGFloat, _ vy: CGFloat) -> CGFloat {
+            let a = atan2(ux * vy - uy * vx, ux * vx + uy * vy)
+            return a
+        }
+        let theta1 = angle(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry)
+        var dTheta = angle((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry)
+        if !sweep && dTheta > 0 { dTheta -= 2 * .pi }
+        if sweep && dTheta < 0 { dTheta += 2 * .pi }
+
+        let segments = max(1, Int(ceil(abs(dTheta) / (.pi / 2))))
+        let delta = dTheta / CGFloat(segments)
+        let t = 4.0 / 3.0 * tan(delta / 4)
+        var th = theta1
+        for _ in 0..<segments {
+            let c1 = cos(th), s1 = sin(th)
+            let c2 = cos(th + delta), s2 = sin(th + delta)
+            func map(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+                CGPoint(x: cosPhi * rx * x - sinPhi * ry * y + cx,
+                        y: sinPhi * rx * x + cosPhi * ry * y + cy)
+            }
+            let cp1 = map(c1 - t * s1, s1 + t * c1)
+            let cp2 = map(c2 + t * s2, s2 - t * c2)
+            let end = map(c2, s2)
+            path.addCurve(to: end, control1: cp1, control2: cp2)
+            th += delta
+        }
     }
 
     private static func tokenize(_ d: String) -> [Token] {
