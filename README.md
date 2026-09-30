@@ -2,123 +2,74 @@
 
 # Tidy Usage
 
-<p align="center">
-  <strong>轻量、克制、原生的 macOS 菜单栏 AI 订阅额度看板</strong>
-</p>
+**轻量、克制、原生的 macOS 菜单栏 AI 额度看板**
 
-<p align="center">
+<p>
   <img src="https://img.shields.io/badge/macOS-14.0%2B-blue?style=flat-square&logo=apple" alt="macOS 14+">
-  <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift">
-  <img src="https://img.shields.io/badge/UI-SwiftUI%20%2B%20AppKit-6366f1?style=flat-square" alt="SwiftUI + AppKit">
-  <img src="https://img.shields.io/badge/Security-macOS%20Keychain-059669?style=flat-square" alt="Keychain">
-  <img src="https://img.shields.io/badge/License-MIT-gray?style=flat-square" alt="MIT License">
+  <img src="https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.9">
+  <img src="https://img.shields.io/badge/SwiftUI%20%2B%20AppKit-6366f1?style=flat-square" alt="SwiftUI + AppKit">
+  <img src="https://img.shields.io/badge/License-MIT-gray?style=flat-square" alt="MIT">
 </p>
-
-<br />
-
-<img src="docs/images/hero.png" alt="Tidy Usage Hero Preview" width="100%">
 
 </div>
 
-<br />
+<br>
 
-**Tidy Usage** 专为多模型订阅用户打造。它在 macOS 菜单栏常驻显示各个 AI 平台（如 Claude、Antigravity / Gemini 等）的 **5 小时与每周用量消耗**。拒绝花哨冗余与臃肿进程，只为「抬头一瞥即知余量，点击展开优雅掌控」。
+<div align="center">
+  <img src="docs/images/panel.png" alt="Panel" width="320">
+</div>
 
----
+<br>
 
-## ✨ 特性一览
+在 macOS 菜单栏常驻显示 Claude、Antigravity (Gemini) 等 AI 平台的 5 小时 / 每周用量消耗。拒绝臃肿进程，只为抬头一瞥即知余量。
 
-### 1. 极简菜单栏排布 · 一瞥即知
-- **Logo + 环形进度**：每个服务商紧跟 `5`（5 小时滑动窗口）和 `7`（7 天周窗口）圆环；分模型的周额度自动提取首字母（如 Fable → `F`）。
-- **纯粹的消耗比例**：圆环描边直观代表**已用百分比**（0%~100%）。
-- **双阈值警示色**：
-  - **常态（< 80%）**：纯白/深灰单色，完美融入系统深浅色菜单栏。
-  - **高负荷（≥ 80%）**：切换为**鲜亮橙色**。
-  - **极限告警（≥ 90%）**：切换为**醒目红色**。
-- **优雅空状态**：若未钉选任何指标，菜单栏自动显示小巧的 SF Symbol 仪表盘（`gauge.with.needle`），随时随地可点开面板。
-
-### 2. 原生下拉看板 · 点击即时钉选
-- **沉浸毛玻璃窗口**：自定义无边框 `NSPanel`，打开瞬间锚定菜单栏图标位置，无论菜单栏宽度怎么变动均绝不跳动移位。
-- **点击行直接钉选**：在面板中轻点任意行，即可立即将该指标钉上或撤下菜单栏，免去繁琐设置；未钉选的行以优雅半透明弱化显示。
-- **更具可读性的重置时间**：
-  - 进度条位于数值正下方。
-  - **24 小时以内**：直观倒计时（如 `2 小时 19 分后重置`、`45 分钟后重置`）。
-  - **大于 24 小时**：自然日期时间（如 `10月2日 10:00 重置`）。
-- **细腻交互防抖**：
-  - 刷新按钮点击后保证**完整转满整圈**（0.7s 先加速后减速），绝不卡顿半截。
-  - 刷新、钉选、设置、退出全面集成防抖节流，杜绝快速连击导致的无效并发。
-
-### 3. 本地零凭据风险 · 429 容灾兜底
-- **客户端零隐私触碰**：App 不读取本机任何本地 OAuth Token 或配置，仅向你自建的只读聚合端拉取脱敏数据。
-- **系统级安全存储**：API 访问 Token 经硬件级安全存储写入 **macOS Keychain**。
-- **429 自动容灾兜底**：
-  - 遭遇官方上游接口短暂 429（Rate Limit）时，自动保持上一轮成功数据，**服务商绝不会在面板或菜单栏中偶发闪退消失**。
-  - 本地持久化缓存：关机或冷启动也能即刻展示上次用量；单服务商离线后 30 秒后台轻量级自动补拉。
+<div align="center">
+  <img src="docs/images/menubar.png" alt="Menu Bar" height="30">
+</div>
 
 ---
 
-## 🖼️ 界面展示
+## 特性
 
-### 菜单栏样式对照
-
-<img src="docs/images/menubar-preview.png" alt="Menubar Preview" width="100%">
-
-| 状态 | 表现形式 | 说明 |
-| :--- | :--- | :--- |
-| **深色菜单栏** | 白色前景色 + 状态预警 | 无缝适配原生 Dark Mode；用量达 80% 变橙，90% 变红 |
-| **浅色菜单栏** | 自动反色 + 状态预警 | 切换浅色壁纸时自动调整为深灰前景色，保持极高可读性 |
-| **未钉选指标** | `gauge.with.needle` | 干净克制，点击即可唤出面板进行快捷钉选 |
-| **异常/报错** | 仪表盘右上角橙点 | 网络不可达或 Token 失效时，静默轻度提示，不打扰工作流 |
+- **菜单栏环形进度** — Logo 后面跟 `5`（5 小时窗口）和 `7`（7 天窗口）两个圆环，填充比例即已用百分比。≥ 80% 橙色预警，≥ 90% 红色警示，常态下单色融入系统深浅色菜单栏。
+- **点击即时钉选** — 面板中点击任意行即可将该指标钉上 / 撤下菜单栏，未钉选行半透明弱化。未钉选任何指标时显示 `gauge.with.needle` 空状态。
+- **原生毛玻璃面板** — 无边框 `NSPanel`，锚定菜单栏图标位置，菜单栏宽度变化不跳动。进度条下方显示自适应重置倒计时（< 24h 显示"X 小时 Y 分后重置"，≥ 24h 显示日期时间）。
+- **零凭据风险** — 客户端仅向自建只读聚合端拉取脱敏数据，Token 存入 macOS Keychain。
+- **429 容灾** — 上游 429 时保持上次成功数据，服务商不会闪退消失。磁盘持久化缓存，冷启动即刻展示历史用量。缺失服务商 30 秒后自动补拉。
+- **防抖交互** — 刷新按钮整圈旋转不卡半截，所有操作全面防抖节流。
 
 ---
 
-## 🚀 快速上手
-
-### 环境要求
-- **操作系统**：macOS 14.0 (Sonoma) 或更高版本
-- **编译工具**：Command Line Tools 或 Xcode 15+（内置 Swift 5.9+）
-
-### 一键构建与安装
-
-克隆仓库并执行内置构建脚本，无需打开庞大的 Xcode 工程：
+## 快速上手
 
 ```bash
 git clone https://github.com/RUIIIOVO/tidy-usage-sidebar.git
 cd tidy-usage-sidebar
 
-# 1. 复制本地环境变量（可选配置纯 HTTP 例外、默认端点等）
+# 可选：配置 HTTP 例外域名
 cp local.env.example local.env
 
-# 2. 编译、签名并安装至 ~/Applications，同时立即启动
+# 编译 + 签名 + 安装至 ~/Applications 并启动
 scripts/build.sh
 ```
 
-> **提示**：
-> - 构建脚本会自动检测本机 `Apple Development` 签名证书；若无证书则自动回退至 ad-hoc 签名。
-> - 如果额度服务部署在内网且走纯 HTTP 协议，在 `local.env` 中配置 `HTTP_HOST=<你的IP或域名>`，构建脚本会自动且仅为该域名打入 ATS 例外。
-> - 若只需生成编译产物而不安置，可执行 `scripts/build.sh --no-install`（产物位于 `build/Tidy Usage.app`）。
+首次启动后点击菜单栏图标 → 底部 ⚙️ 设置 → 填入自建查询接口地址和 Token → 保存并测试。
 
-### 首次配置
-
-首次启动后，点击菜单栏上的图标打开面板，点击底部右下角的 **⚙️（设置）**：
-1. 填入你的自建查询接口地址（`Endpoint URL`）。
-2. 填入服务验证口令（`Token`），保存后自动存入 macOS Keychain。
-3. 点击 **保存并测试**，连接成功即刻开始轮询。
+> 构建脚本自动检测 `Apple Development` 证书，无证书时回退 ad-hoc 签名。`local.env` 中配置 `HTTP_HOST` 可为指定域名打入 ATS 例外。
 
 ---
 
-## 📡 接口与数据规范
+## 接口规范
 
-Tidy Usage 客户端设计为**通用、无状态**的轻量看板。你只需搭建一个提供标准 JSON 的只读端点：
+客户端向自建端点发送请求：
 
-### 请求方式
-```http
-GET /usage HTTP/1.1
-Host: your-api-server:8318
-Authorization: Bearer <YOUR_TOKEN>
+```
+GET /usage
+Authorization: Bearer <TOKEN>
 ```
 
-### 响应协议示例
+期望返回：
+
 ```json
 {
   "ok": true,
@@ -129,27 +80,6 @@ Authorization: Bearer <YOUR_TOKEN>
       "label": null,
       "utilization": 28.5,
       "resets_at": "2026-09-30T09:30:00Z"
-    },
-    {
-      "provider": "claude",
-      "name": "seven_day",
-      "label": null,
-      "utilization": 84.0,
-      "resets_at": "2026-10-02T15:00:00Z"
-    },
-    {
-      "provider": "claude",
-      "name": "weekly_scoped",
-      "label": "Fable",
-      "utilization": 15.0,
-      "resets_at": "2026-10-05T00:00:00Z"
-    },
-    {
-      "provider": "antigravity",
-      "name": "5h",
-      "label": "Gemini Models",
-      "utilization": 0.0,
-      "resets_at": null
     },
     {
       "provider": "antigravity",
@@ -163,48 +93,40 @@ Authorization: Bearer <YOUR_TOKEN>
 }
 ```
 
-### 字段说明
-- `windows[].provider`：服务商标示，目前内置识别 `claude` 与 `antigravity`，其他未知服务商自动降级为通用文本图标。
-- `windows[].name`：时间窗口标识（包含 `5h` / `five_hour` 自动识别为 5 小时滑动窗口；`weekly` / `seven_day` 识别为每周窗口）。
-- `windows[].label`：子模型/分组标签（例如 `Gemini Models`、`Claude and GPT Models`、`Fable` 等）。
-- `windows[].utilization`：**已用百分比**（0.0 ~ 100.0），支持小数。
-- `windows[].resets_at`：ISO 8601 格式的额度刷新时间（UTC 或带时区字符串）。
+| 字段 | 说明 |
+|------|------|
+| `provider` | `claude` / `antigravity`，其他值降级为文本图标 |
+| `name` | 含 `5h` / `five_hour` → 5 小时窗口；`weekly` / `seven_day` → 周窗口 |
+| `label` | 子模型标签，如 `Fable`（菜单栏环上显示首字母 `F`） |
+| `utilization` | 已用百分比 0.0–100.0 |
+| `resets_at` | ISO 8601 格式额度刷新时间 |
 
-> 💡 **配套服务端**：仓库的 [`server/`](server/) 目录下提供了基于 Python 的轻量实现，专用于读取 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 认证凭据并旁路聚合官方用量。详细部署配置说明见 [server/README.md](server/README.md)。
+配套服务端参考实现见 [`server/`](server/) 目录。
 
 ---
 
-## 📂 项目结构
+## 项目结构
 
-```text
-tidy-usage-sidebar/
-├── App/                         # 客户端主源码
-│   └── Sources/TidyUsage/
-│       ├── App.swift            # 状态栏生命周期、Menu Extra 代理与事件分发
-│       ├── MenuBarIcon.swift    # 菜单栏动态渲染（环形进度、预警着色、空状态仪表盘）
-│       ├── PanelWindow.swift    # 自定义无边框原生毛玻璃 NSPanel（防跳动锚定）
-│       ├── PanelView.swift      # 交互看板界面（自适应倒计时、平滑进度条、防抖按钮）
-│       ├── SettingsView.swift   # 配置窗口（Keychain 读写与连通性验证）
-│       ├── Debounce.swift       # 节流防抖核心工具
-│       ├── Models.swift         # 数据模型、持久化落盘与时间格式化
-│       ├── UsageStore.swift     # 状态机：轮询调度、单模型 429 容灾兜底、补拉策略
-│       ├── LogoPaths.swift      # 矢量高精 SVG 图标数据（Claude、Antigravity）
-│       └── SVGPath.swift        # 轻量级原生矢量路径渲染器
-├── server/                      # 额度中继服务（Python + systemd）
-│   ├── usage_api.py             # 旁路用量抓取聚合服务
-│   ├── cpa-usage.service        # Linux systemd 守护进程单元
-│   └── README.md                # 服务端详细部署与运维指南
-├── scripts/
-│   └── build.sh                 # 自动化编译、ATS 打包、签名与安装脚本
-├── docs/images/                 # 规范化文档展示图与高清预览图
-├── design/                      # UI 迭代原型与 HTML 静态设计稿
-└── local.env.example            # 本地敏感环境配置模板
+```
+App/Sources/TidyUsage/
+├── App.swift             # 状态栏生命周期与事件分发
+├── MenuBarIcon.swift     # 菜单栏渲染（环形进度、预警着色、空状态）
+├── PanelWindow.swift     # 无边框原生毛玻璃 NSPanel
+├── PanelView.swift       # 交互看板（进度条、倒计时、钉选）
+├── SettingsView.swift    # 设置窗口（Keychain 读写）
+├── UsageStore.swift      # 轮询调度、429 容灾、磁盘缓存
+├── Models.swift          # 数据模型与时间格式化
+├── Debounce.swift        # 节流防抖
+├── LogoPaths.swift       # 矢量 Logo 数据
+└── SVGPath.swift         # 轻量矢量路径渲染
+server/                   # Python 额度中继服务
+scripts/build.sh          # 编译签名安装脚本
 ```
 
 ---
 
-## 🔒 隐私与许可
+## 许可
 
-- **数据隐私**：所有统计数据均直接在客户端与你配置的自建服务器之间传输，不经过任何第三方云端中转，源码完全公开透明。
-- **开源许可证**：本项目基于 [MIT 许可证](LICENSE) 发布。
-- **徽标版权**：Claude 徽标取自 [Simple Icons](https://simpleicons.org) (CC0)；Antigravity 徽标取自 [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT)；商标版权归其各自母公司或组织所有。
+[MIT](LICENSE)
+
+Logo 版权：Claude 徽标取自 [Simple Icons](https://simpleicons.org) (CC0)，Antigravity 徽标取自 [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT)，商标归各自所有者。
