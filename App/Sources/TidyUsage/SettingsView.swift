@@ -28,7 +28,7 @@ struct SettingsView: View {
                     SecureField("Token", text: $token)
                 }
 
-                Section("DeepSeek 余额") {
+                Section("DeepSeek 用量查询") {
                     SecureField("API Key", text: $deepseekKey, prompt: Text("sk-..."))
                 }
 
@@ -39,9 +39,9 @@ struct SettingsView: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("背景透明度")
+                            Text("背景不透明度")
                             Spacer()
-                            Text("\(Int((settings.backgroundOpacity * 100).rounded()))%")
+                            Text(settings.backgroundOpacity >= 0.99 ? "100% · 完全不透明" : "\(Int((settings.backgroundOpacity * 100).rounded()))%")
                                 .font(.system(size: 12, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
@@ -151,9 +151,9 @@ struct SettingsView: View {
             if !ds.isEmpty {
                 do {
                     let raw = try await UsageClient.fetchDeepSeekBalance(apiKey: ds)
-                    lines.append(TestLine(ok: true, text: String(format: "DeepSeek：连接成功，余额 ¥%.2f", raw.balance ?? 0)))
+                    lines.append(TestLine(ok: true, text: String(format: "DeepSeek 用量查询：连接成功，余额 ¥%.2f", raw.balance ?? 0)))
                 } catch {
-                    lines.append(TestLine(ok: false, text: "DeepSeek：\(error.localizedDescription)"))
+                    lines.append(TestLine(ok: false, text: "DeepSeek 用量查询：\(error.localizedDescription)"))
                 }
             }
 

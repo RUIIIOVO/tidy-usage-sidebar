@@ -11,6 +11,7 @@ final class MainWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
     private let hosting: NSHostingView<AnyView>
     private let effect: NSVisualEffectView
+    private let solidView: SolidBackgroundView
     private let settings: AppSettings
     private var sizeObservation: NSKeyValueObservation?
     private var cancellables = Set<AnyCancellable>()
@@ -54,16 +55,25 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         effect.layer?.cornerRadius = 12
         effect.layer?.cornerCurve = .continuous
         effect.layer?.masksToBounds = true
-        effect.alphaValue = CGFloat(settings.backgroundOpacity)
         self.effect = effect
 
+        let solidView = SolidBackgroundView()
+        solidView.translatesAutoresizingMaskIntoConstraints = false
+        self.solidView = solidView
+
         container.addSubview(effect)
+        container.addSubview(solidView)
         container.addSubview(hosting)
         NSLayoutConstraint.activate([
             effect.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             effect.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             effect.topAnchor.constraint(equalTo: container.topAnchor),
             effect.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+
+            solidView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            solidView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            solidView.topAnchor.constraint(equalTo: container.topAnchor),
+            solidView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
 
             hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             hosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
@@ -73,6 +83,8 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         window.contentView = container
         super.init()
         window.delegate = self
+
+        updateOpacity(settings.backgroundOpacity)
 
         relayout()
         if !window.setFrameUsingName(Self.autosaveName) {
@@ -91,7 +103,13 @@ final class MainWindowController: NSObject, NSWindowDelegate {
 
         settings.$backgroundOpacity
             .sink { [weak self] op in
-                self?.effect.alphaValue = CGFloat(op)
+                self?.updateOpacity(op)
+            }
+            .store(in: &cancellables)
+
+        settings.$theme
+            .sink { [weak self] _ in
+                self?.solidView.needsDisplay = true
             }
             .store(in: &cancellables)
 
@@ -149,6 +167,20 @@ final class MainWindowController: NSObject, NSWindowDelegate {
             : [.managed, .participatesInCycle]
     }
 
+    /// 调节不透明度：
+    /// 0.2 ~ 0.7 时渐变减少毛玻璃透明度；
+    /// 0.7 ~ 1.0 时平滑引入实心底色，1.0 时达到 100% 完全不透明。
+    private func updateOpacity(_ op: Double) {
+        let clamped = max(0.2, min(1.0, op))
+        if clamped >= 0.7 {
+            effect.alphaValue = 1.0
+            solidView.alphaValue = CGFloat((clamped - 0.7) / 0.3)
+        } else {
+            effect.alphaValue = CGFloat(clamped / 0.7)
+            solidView.alphaValue = 0.0
+        }
+    }
+
     // MARK: - 布局
 
     /// 按内容高度调整窗口，保持顶边不动。
@@ -198,5 +230,26 @@ final class MainWindowController: NSObject, NSWindowDelegate {
             window.setFrameOrigin(NSPoint(x: newX, y: newY))
             window.saveFrame(usingName: Self.autosaveName)
         }
+    }
+}
+
+/// 100% 不透明度时呈现的实心背景视图，自适应深浅色外观并带有圆角
+final class SolidBackgroundView: NSView {
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) { super.init(coder: coder) }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let path = NSBezierPath(roundedRect: bounds, xRadius: 12, yRadius: 12)
+        let color = NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1.0)
+                : NSColor(red: 0.95, green: 0.95, blue: 0.96, alpha: 1.0)
+        }
+        color.setFill()
+        path.fill()
     }
 }
