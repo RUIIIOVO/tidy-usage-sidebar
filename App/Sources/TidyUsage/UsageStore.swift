@@ -68,6 +68,7 @@ final class UsageStore: ObservableObject {
 
     init(settings: AppSettings) {
         self.settings = settings
+        restoreCache()
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -97,6 +98,51 @@ final class UsageStore: ObservableObject {
         Task { await refresh() }
     }
 
+    private var retryTask: Task<Void, Never>?
+
+    private func scheduleRetry() {
+        guard retryTask == nil else { return }
+        retryTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 30 * 1_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.retryTask = nil
+            await self.refresh()
+        }
+    }
+
+    // MARK: 本地缓存：上次成功的窗口落盘，冷启动碰上 429 也有数可显示
+
+    private struct Cache: Codable {
+        var windows: [RawWindow]
+        var lastGoodAt: [String: Date]
+        var emails: [String: String]
+    }
+
+    private static var cacheURL: URL {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("TidyUsage", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("last-usage.json")
+    }
+
+    private func saveCache() {
+        let cache = Cache(windows: windows.map(\.raw), lastGoodAt: lastGoodAt, emails: emails)
+        if let data = try? JSONEncoder().encode(cache) {
+            try? data.write(to: Self.cacheURL, options: .atomic)
+        }
+    }
+
+    private func restoreCache() {
+        guard let data = try? Data(contentsOf: Self.cacheURL),
+              let cache = try? JSONDecoder().decode(Cache.self, from: data) else { return }
+        // 超过 7 天的旧数据没意义
+        let fresh = cache.lastGoodAt.filter { Date().timeIntervalSince($0.value) < 7 * 86400 }
+        windows = cache.windows.map(UsageWindow.init(raw:)).filter { fresh[$0.provider] != nil }
+        lastGoodAt = fresh
+        emails = cache.emails
+        dataTime = fresh.values.max()
+    }
+
     func refresh() async {
         guard !isLoading else { return }
         isLoading = true
@@ -119,6 +165,7 @@ final class UsageStore: ObservableObject {
             }
             windows = merged
             providerStaleSince = staleSince
+            saveCache()
             providerErrors = body.errors ?? [:]
 
             var mails = emails
@@ -128,6 +175,9 @@ final class UsageStore: ObservableObject {
             serverStale = body.stale ?? false
             dataTime = queried
             errorMessage = nil
+
+            // 有服务商这次缺席（通常是上游 429），30 秒后单独补一次，不必等下一轮轮询
+            if !staleSince.isEmpty { scheduleRetry() }
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }

@@ -15,7 +15,7 @@ struct UsageResponse: Decodable {
     let queried_at: Double?
 }
 
-struct RawWindow: Decodable {
+struct RawWindow: Codable {
     let provider: String?
     let name: String
     let label: String?
@@ -61,6 +61,12 @@ struct UsageWindow: Identifiable, Hashable {
     }
 
     var level: UsageLevel { UsageLevel(used: used) }
+
+    /// 还原成接口结构，用于落盘缓存
+    var raw: RawWindow {
+        RawWindow(provider: provider, name: name, label: label, utilization: used,
+                  resets_at: resetsAt.map { DateParsing.format($0) })
+    }
 
     init(raw: RawWindow) {
         let provider = raw.provider ?? "claude"
@@ -222,6 +228,8 @@ enum DateParsing {
     }()
 
     /// 兼容 "2026-09-30T03:00:00.040439+00:00" 和 "2026-10-05T01:31:05Z"
+    static func format(_ d: Date) -> String { formatter.string(from: d) }
+
     static func parse(_ s: String) -> Date? {
         let trimmed = s.replacingOccurrences(of: #"\.\d+"#, with: "", options: .regularExpression)
         return formatter.date(from: trimmed)
