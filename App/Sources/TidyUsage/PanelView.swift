@@ -228,7 +228,8 @@ private struct FooterView: View {
     }
 
     var body: some View {
-        HStack(spacing: 2) {
+        // 三个按钮等间距；间距调大一点，让终态动作不至于贴着手边的常用按钮
+        HStack(spacing: 8) {
             HStack(spacing: 6) {
                 Circle().fill(status.0.opacity(0.85)).frame(width: 5, height: 5)
                 Text(status.1).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
@@ -253,8 +254,6 @@ private struct FooterView: View {
                 Image(systemName: "power")
             }
             .buttonStyle(IconButtonStyle())
-            // 退出是终态动作，和 ↻ / ⚙ 拉开距离，避开误点
-            .padding(.leading, 8)
             .help("退出 Tidy Usage")
         }
         .font(.system(size: 12))
