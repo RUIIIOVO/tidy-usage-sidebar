@@ -96,6 +96,8 @@ final class UsageStore: ObservableObject {
     /// 某家本次请求失败时，沿用它上次成功的数据；这里记录那份数据的时间
     @Published private(set) var providerStaleSince: [String: Date] = [:]
     @Published private(set) var providerErrors: [String: String] = [:]
+    /// DeepSeek 余额请求的失败原因（未配置 Key 时为 nil）
+    @Published private(set) var deepseekError: String?
     private var lastGoodAt: [String: Date] = [:]
 
     private(set) var lastAttempt: Date?
@@ -230,10 +232,18 @@ final class UsageStore: ObservableObject {
         }
 
         // DeepSeek
-        if case .success(let raw) = ds {
+        switch ds {
+        case .success(let raw):
             freshWindows.append(UsageWindow(raw: raw))
             freshProviders.insert("deepseek")
             lastGoodAt["deepseek"] = queried
+            deepseekError = nil
+        case .failure(let err):
+            if case UsageError.noToken = err {
+                deepseekError = nil   // 没填 Key 不算错误
+            } else {
+                deepseekError = (err as? LocalizedError)?.errorDescription ?? err.localizedDescription
+            }
         }
 
         // 合并旧数据
