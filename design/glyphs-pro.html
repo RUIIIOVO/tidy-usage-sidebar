@@ -1,0 +1,64 @@
+<!doctype html><meta charset="utf-8"><title>glyph directions — researched</title>
+<style>
+body{margin:0;padding:36px 44px;background:#0e0e10;color:#ccc;font:13px -apple-system,"PingFang SC",sans-serif;-webkit-font-smoothing:antialiased}
+.g{display:grid;grid-template-columns:34px 300px 230px 250px 1fr;gap:0 22px;align-items:center}
+.g>div{padding:15px 0;border-bottom:1px solid #222}
+.h{color:#666;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.id{font:600 17px ui-serif,Georgia;color:#fff}
+.name b{color:#fff;font-weight:600;display:block;margin-bottom:3px}.name span{color:#888;font-size:12px;line-height:1.5}
+.name i{font-style:normal;color:#6f8fe8}
+.mb{height:24px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;padding:0 9px;color:#f2f2f5;background:#2a2735}
+.mb.l{color:#1c1c1e;background:#e9e3dc}
+.sp{width:6px}
+.big{display:inline-flex;gap:14px;align-items:center;color:#eee}
+.note{color:#8b8b95;font-size:12px;line-height:1.6}
+</style>
+<div class="g" id="g"><div class="h"></div><div class="h">方案 · 出处</div><div class="h">实际大小（24pt 菜单栏）</div><div class="h">放大 3×</div><div class="h">判断</div></div>
+<p style="color:#666;font-size:12px;margin-top:16px">示例：Claude 5 小时已用 45% · 周已用 72% ｜ Gemini 周已用 84%（橙）· 5 小时已用 93%（红）。填充 = 已用。</p>
+<script>
+const OR='#f0932b',RD='#e5484d';const col=(u,c)=>u>=90?RD:u>=80?OR:c;
+const svg=(w,h,inner)=>`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;overflow:visible">${inner}</svg>`;
+function ring(s,u,c,sw){sw=sw||s*.12;const x=s/2,r=s/2-sw/2,C=2*Math.PI*r,k=col(u,c);
+ return `<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-opacity=".25" stroke-width="${sw}"/><circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${C*u/100} ${C}" transform="rotate(-90 ${x} ${x})"/>`}
+// R1 split ring: left half = 5h, right half = week, both fill bottom→top
+function split(s,u5,uw,c){const sw=s*.13,x=s/2,r=s/2-sw/2,g=s>=30?14:22; // gap degrees
+ const pt=a=>[x+r*Math.sin(a*Math.PI/180),x-r*Math.cos(a*Math.PI/180)];
+ const arc=(a0,a1,k,op)=>{const[p,q]=pt(a0),[m,n]=pt(a1);const sweep=a1>a0?1:0;return `<path d="M${p} ${q}A${r} ${r} 0 0 ${sweep} ${m} ${n}" fill="none" stroke="${k}" stroke-opacity="${op}" stroke-width="${sw}" stroke-linecap="round"/>`};
+ const L0=180+g/2,L1=360-g/2,R0=180-g/2,R1=g/2; // left: from bottom going clockwise up to top ; right: from bottom ccw to top
+ const kl=col(u5,c),kr=col(uw,c);
+ let o=arc(L0,L1,kl,.25)+arc(R0,R1,kr,.25);
+ if(u5>0)o+=arc(L0,L0+(L1-L0)*u5/100,kl,1);
+ if(uw>0)o+=arc(R0,R0-(R0-R1)*uw/100,kr,1);
+ return o}
+// R2 watch accessory: ring + inner text
+function inner(s,u,c,t){const k=col(u,c);return ring(s,u,c,s*.1)+`<text x="${s/2}" y="${s/2}" dy=".36em" text-anchor="middle" font-family="-apple-system,SF Pro Rounded" font-weight="700" font-size="${s*(t.length>1?.36:.46)}" letter-spacing="-.02em" fill="${k}">${t}</text>`}
+// R3 ring + tiny side caption (Stats/iStat mini)
+function cap(s,u,c,t){const k=col(u,c),h=s;return `<g>${ring(s,u,c)}</g><text x="${s+s*.16}" y="${h/2}" dy=".36em" font-family="-apple-system" font-weight="600" font-size="${s*.5}" fill="${k}">${t}</text>`}
+// R4 codexbar: one glyph per provider, thick top bar = 5h, thin bottom = week
+function stack(w,h,u5,uw,c){const k5=col(u5,c),kw=col(uw,c),t=h*.34,b=h*.2,y1=h*.16,y2=h*.66;
+ const bar=(y,hh,u,k)=>`<rect x="0" y="${y}" width="${w}" height="${hh}" rx="${hh/2}" fill="${k}" fill-opacity=".25"/><rect x="0" y="${y}" width="${Math.max(hh,w*u/100)}" height="${hh}" rx="${hh/2}" fill="${k}"/>`;
+ return bar(y1,t,u5,k5)+bar(y2,b,uw,kw)}
+const D=[
+ ['1','一环两半（分体环）','<i>Garmin / WHOOP 表盘、Apple Watch Modular 的双弧</i>。一家一个环：左半是 5 小时，右半是周，都从底部往上填。',
+  c=>svg(16,16,split(16,45,72,c))+`<span class="sp"></span>`+svg(16,16,split(16,93,84,c)),
+  svg(48,48,split(48,45,72,'#eee'))+svg(48,48,split(48,93,84,'#eee')),
+  '用位置区分，不靠形状，所以两种窗口都是光滑的弧，风格统一。环的数量减半：两家就是两个环。代价是每半只有 180°，精度比整环低，但菜单栏本来就只需要看个大概。'],
+ ['2','环 + 内嵌标签','<i>Apple Watch accessoryCircular 表盘组件</i>，也是 HIG 里 Gauge 的一种"accessory"样式：环中间放一个很短的标签。',
+  c=>svg(16,16,inner(16,45,c,'5'))+svg(16,16,inner(16,72,c,'W'))+`<span class="sp"></span>`+svg(16,16,inner(16,84,c,'W'))+svg(16,16,inner(16,93,c,'5')),
+  svg(48,48,inner(48,45,'#eee','5'))+svg(48,48,inner(48,72,'#eee','W')),
+  '苹果官方的做法，含义最明确。菜单栏 16pt 下字只有 7pt 左右：能认出来，但偏挤。更适合做成 18pt 的环，或者只用一个字母。'],
+ ['3','环 + 旁注小字','<i>Stats（42k★）、iStat Menus 的 mini 组件</i>：图形旁边加一个两三个字的小字，比如 5h、7d。',
+  c=>svg(28,16,cap(16,45,c,'5h'))+svg(28,16,cap(16,72,c,'7d'))+`<span class="sp"></span>`+svg(28,16,cap(16,93,c,'5h')),
+  svg(80,48,cap(48,45,'#eee','5h')),
+  '最不用学：看到的就是字面意思。缺点是宽度大约翻倍，钉 4 个环就会很长，和"轻量"有些冲突。'],
+ ['4','一家一个图标，粗细分层','<i>CodexBar（22k★）</i>的做法：一家一个图标，上面粗条是 5 小时，下面细条是周。源码里写着 "Keep monochrome template icons"。',
+  c=>svg(18,16,stack(18,16,45,72,c))+`<span class="sp"></span>`+svg(18,16,stack(18,16,93,84,c)),
+  svg(54,48,stack(54,48,45,72,'#eee')),
+  '同类产品里最成熟的方案，粗细代表主次。但它是条形，而你要的是环。你第一版就否掉了两根横条，这里只作参考。'],
+];
+const g=document.getElementById('g');
+for(const [id,name,desc,bar,big,note] of D)
+ g.insertAdjacentHTML('beforeend',`<div class="id">${id}</div><div class="name"><b>${name}</b><span>${desc}</span></div>
+ <div><span class="mb">${bar('#f2f2f5')}</span><div style="height:8px"></div><span class="mb l">${bar('#1c1c1e')}</span></div>
+ <div><span class="big">${big}</span></div><div class="note">${note}</div>`);
+</script>

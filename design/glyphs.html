@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>glyph directions</title>
+<style>
+body{margin:0;padding:40px 48px;background:#0e0e10;color:#ccc;font:13px -apple-system,"PingFang SC",sans-serif;-webkit-font-smoothing:antialiased}
+.g{display:grid;grid-template-columns:40px 250px 190px 190px 1fr;gap:0 24px;align-items:center}
+.g>div{padding:16px 0;border-bottom:1px solid #222}
+.h{color:#666;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.id{font:600 18px ui-serif,Georgia;color:#fff}
+.name b{color:#fff;font-weight:600;display:block;margin-bottom:3px}.name span{color:#888;font-size:12px}
+.mb{height:24px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;padding:0 9px;color:#f2f2f5;background:#2a2735}
+.mb.l{color:#1c1c1e;background:#e9e3dc}
+.mb .sp{width:4px}
+.big{display:inline-flex;gap:16px;align-items:center;margin-left:14px;color:#eee}
+.note{color:#8b8b95;font-size:12px;line-height:1.6}
+</style>
+<div class="g" id="g">
+ <div class="h"></div><div class="h">方向</div><div class="h">实际大小 · 深色/浅色</div><div class="h">放大 3×</div><div class="h">评价</div>
+</div>
+<script>
+const OR='#f0932b', RD='#e5484d';
+const col=(used,c)=>used>=90?RD:used>=80?OR:c;
+// used: 已用百分比; 填充画的是已用
+function circle(s,used,c,{sw=2}={}){const r=s/2-sw/2-.3,C=2*Math.PI*r,k=col(used,c),x=s/2;
+ return `<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-opacity=".25" stroke-width="${sw}"/><circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${C*used/100} ${C}" transform="rotate(-90 ${x} ${x})"/>`}
+function squircle(s,used,c,sw=2){const k=col(used,c),i=sw/2+.3,w=s-2*i,rr=w*.32;
+ const d=`M${s/2} ${i}H${s-i-rr}A${rr} ${rr} 0 0 1 ${s-i} ${i+rr}V${s-i-rr}A${rr} ${rr} 0 0 1 ${s-i-rr} ${s-i}H${i+rr}A${rr} ${rr} 0 0 1 ${i} ${s-i-rr}V${i+rr}A${rr} ${rr} 0 0 1 ${i+rr} ${i}Z`;
+ return `<path d="${d}" fill="none" stroke="${k}" stroke-opacity=".25" stroke-width="${sw}"/><path d="${d}" pathLength="100" fill="none" stroke="${k}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${used} 100"/>`}
+function pie(s,used,c){const k=col(used,c),x=s/2,r=s/2-.8,a=Math.min(used,99.9)/100*2*Math.PI,ex=x+r*Math.sin(a),ey=x-r*Math.cos(a);
+ return `<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-opacity=".45" stroke-width="1.2"/><path d="M${x} ${x}L${x} ${x-r}A${r} ${r} 0 ${used>50?1:0} 1 ${ex} ${ey}Z" fill="${k}"/>`}
+function gauge(s,used,c,sw=2){const k=col(used,c),x=s/2,r=s/2-sw/2-.3,C=2*Math.PI*r,L=C*.75;
+ return `<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-opacity=".25" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${L} ${C}" transform="rotate(135 ${x} ${x})"/><circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${L*used/100} ${C}" transform="rotate(135 ${x} ${x})"/>`}
+function numIn(s,used,c,n){return circle(s,used,c,{sw:1.8})+`<text x="${s/2}" y="${s/2}" dy=".36em" text-anchor="middle" font-family="-apple-system" font-weight="700" font-size="${s*.5}" fill="${col(used,c)}">${n}</text>`}
+const svg=(s,inner)=>`<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" style="display:block">${inner}</svg>`;
+
+// 每个方向: f5(s,used,c), fW(s,used,c)
+const D=[
+ ['A','圆环 vs 圆角方环','5 小时是圆，周是 squircle（macOS 图标那种圆角方）', (s,u,c)=>circle(s,u,c),(s,u,c)=>squircle(s,u,c),'轮廓一眼能分开，两种形状都光滑、干净。缺点：方环的起点在顶部正中，进度走到拐角处时视觉上有些不匀。'],
+ ['B','圆环 vs 仪表弧','5 小时是整圆，周是 270° 开口弧（像 Apple Watch 表盘上的仪表）', (s,u,c)=>circle(s,u,c),(s,u,c)=>gauge(s,u,c),'两个都是"环"，气质一致，很 Apple。16px 下底部的缺口能看出来，但不算特别醒目。'],
+ ['C','圆环 vs 饼图','5 小时是线环，周是实心扇形', (s,u,c)=>circle(s,u,c),(s,u,c)=>pie(s,u,c),'区分度最高。不过两种编码不太统一，饼图偏重，放在菜单栏里略显"满"。'],
+ ['D','环内数字','环内印一个小数字：5 表示 5 小时，7 表示 7 天', (s,u,c)=>numIn(s,u,c,'5'),(s,u,c)=>numIn(s,u,c,'7'),'含义最直接，不用学。代价是 16px 下数字只有 8px，环也要画细，会显得有点挤。'],
+ ['E','粗细 / 大小','同样是圆环，周的环更粗，5 小时的环更细', (s,u,c)=>circle(s,u,c,{sw:1.4}),(s,u,c)=>circle(s,u,c,{sw:3}),'最克制。缺点是只有两个环挨在一起时才比得出粗细，单独一个环时分不出来。'],
+];
+const g=document.getElementById('g');
+for(const [id,name,desc,f5,fW,note] of D){
+ const bar=(cls,c)=>`<span class="mb ${cls}">${svg(16,f5(16,45,c))}${svg(16,fW(16,72,c))}<span class="sp"></span>${svg(16,fW(16,84,c))}${svg(16,f5(16,93,c))}</span>`;
+ g.insertAdjacentHTML('beforeend',`<div class="id">${id}</div><div class="name"><b>${name}</b><span>${desc}</span></div>
+ <div>${bar('','#f2f2f5')}<div style="height:8px"></div>${bar('l','#1c1c1e')}</div>
+ <div><span class="big">${svg(48,f5(48,45,'#eee'))}${svg(48,fW(48,72,'#eee'))}</span></div>
+ <div class="note">${note}</div>`);
+}
+</script>
+<p style="color:#666;font-size:12px;margin-top:18px">每条菜单栏示例（从左到右）：5 小时已用 45% · 周已用 72% ｜ 周已用 84%（橙）· 5 小时已用 93%（红）。环的填充 = 已用量。</p>

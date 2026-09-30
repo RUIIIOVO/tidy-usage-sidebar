@@ -1,0 +1,89 @@
+<!doctype html><meta charset="utf-8">
+<title>tidy-usage — design mock</title>
+<style>
+:root{--sans:-apple-system,"SF Pro Text",system-ui;--serif:"New York","Iowan Old Style","Songti SC",Georgia,serif;--mono:"SF Mono",ui-monospace,monospace}
+*{box-sizing:border-box;margin:0}
+body{font-family:var(--sans);background:#0e0e10;padding:56px 64px;display:flex;gap:72px;justify-content:center;-webkit-font-smoothing:antialiased}
+.stage{width:420px}
+.cap{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#77777f;margin-bottom:14px}
+.desk{border-radius:16px;padding:0 0 28px;position:relative;overflow:hidden;height:560px}
+.dark .desk{background:radial-gradient(120% 90% at 20% 0%,#3a3550 0%,#1b1a26 55%,#111018 100%)}
+.light .desk{background:radial-gradient(120% 90% at 20% 0%,#f3e6d6 0%,#d9d3e6 55%,#c6cfe0 100%)}
+/* menu bar */
+.bar{height:26px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font:500 13px var(--sans)}
+.dark .bar{background:rgba(20,20,26,.55);color:#f2f2f5}.light .bar{background:rgba(255,255,255,.55);color:#1c1c1e}
+.bar .it{opacity:.9}
+.item{display:flex;align-items:center;gap:6px;padding:2px 7px;border-radius:5px;height:20px}
+.dark .item.on{background:rgba(255,255,255,.18)}.light .item.on{background:rgba(0,0,0,.12)}
+.glyph{width:16px;height:12px;display:flex;flex-direction:column;justify-content:space-between}
+.glyph i{display:block;height:4px;border-radius:2px;background:currentColor;opacity:.28;position:relative;overflow:hidden}
+.glyph i b{position:absolute;inset:0 auto 0 0;background:currentColor;opacity:1;border-radius:2px}
+.item .n{font:600 12.5px var(--sans);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+/* popover */
+.pop{position:absolute;right:14px;top:32px;width:308px;border-radius:14px;padding:20px 20px 12px;backdrop-filter:blur(40px) saturate(1.6)}
+.dark .pop{background:rgba(38,37,46,.72);color:#f4f3f6;box-shadow:0 0 0 .5px rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.5),inset 0 .5px 0 rgba(255,255,255,.16);--mut:rgba(244,243,246,.52);--track:rgba(255,255,255,.12);--hair:rgba(255,255,255,.09);--fill:#f4f3f6}
+.light .pop{background:rgba(250,248,245,.78);color:#1d1c20;box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 24px 60px rgba(60,50,90,.28),inset 0 .5px 0 rgba(255,255,255,.9);--mut:rgba(29,28,32,.5);--track:rgba(0,0,0,.09);--hair:rgba(0,0,0,.08);--fill:#1d1c20}
+.eyebrow{font:500 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;margin-top:6px}
+.big{font:400 64px/0.95 var(--serif);letter-spacing:-.03em;font-variant-numeric:lining-nums}
+.big small{font:400 22px var(--serif);letter-spacing:0;margin-left:2px;color:var(--mut)}
+.reset{text-align:right;padding-bottom:6px}
+.reset b{display:block;font:500 13px var(--sans);font-variant-numeric:tabular-nums}
+.reset span{font:400 11px var(--sans);color:var(--mut)}
+.track{height:4px;border-radius:2px;background:var(--track);position:relative;margin-top:14px}
+.track .f{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--fill)}
+.track .pace{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--mut);border-radius:1px}
+.rows{margin-top:20px;border-top:.5px solid var(--hair)}
+.row{padding:13px 0 12px;border-bottom:.5px solid var(--hair)}
+.row .h{display:flex;justify-content:space-between;align-items:baseline}
+.row .h .l{font:500 12.5px var(--sans)}
+.row .h .p{font:400 17px var(--serif);font-variant-numeric:lining-nums}
+.row .h .p small{font-size:12px;color:var(--mut)}
+.row .track{margin-top:9px;height:3px}
+.row .s{margin-top:7px;font:400 11px var(--sans);color:var(--mut)}
+.foot{display:flex;justify-content:space-between;align-items:center;padding-top:11px;font:400 11px var(--sans);color:var(--mut)}
+.foot .r{display:flex;gap:14px}
+.warn .f{background:#e0a458!important}
+.pill{display:inline-flex;align-items:center;gap:5px}
+.dot{width:5px;height:5px;border-radius:50%;background:#7fbf9a}
+.note{width:420px;margin-top:22px;font:400 12px/1.7 var(--sans);color:#8b8b95}
+.note b{color:#c9c9d1;font-weight:500}
+</style>
+
+<div class="stage dark"><div class="cap">Dark</div>
+<div class="desk">
+  <div class="bar"><span class="it">􀙇</span><span class="it">Tue 12:03</span>
+    <div class="item on"><div class="glyph"><i><b style="width:55%"></b></i><i><b style="width:98%"></b></i></div><span class="n">55</span></div></div>
+  <div class="pop">
+    <div class="eyebrow">5-hour session</div>
+    <div class="hero"><div class="big">55<small>%</small></div>
+      <div class="reset"><b>6 min</b><span>until reset</span></div></div>
+    <div class="track"><div class="f" style="width:55%"></div><div class="pace" style="left:98%"></div></div>
+    <div class="rows">
+      <div class="row"><div class="h"><span class="l">This week</span><span class="p">98<small>%</small></span></div>
+        <div class="track"><div class="f" style="width:98%"></div></div><div class="s">Resets in 6 d 23 h</div></div>
+      <div class="row"><div class="h"><span class="l">This week · Fable</span><span class="p">100<small>%</small></span></div>
+        <div class="track"><div class="f" style="width:100%"></div></div><div class="s">Resets in 6 d 23 h</div></div>
+    </div>
+    <div class="foot"><span class="pill"><span class="dot"></span>Updated 12:03</span><span class="r"><span>↻</span><span>⚙︎</span></span></div>
+  </div>
+</div></div>
+
+<div class="stage light"><div class="cap">Light · low quota state</div>
+<div class="desk">
+  <div class="bar"><span class="it">􀙇</span><span class="it">Tue 12:03</span>
+    <div class="item on"><div class="glyph"><i><b style="width:12%;background:#c9772b"></b></i><i><b style="width:64%"></b></i></div><span class="n" style="color:#c9772b">12</span></div></div>
+  <div class="pop">
+    <div class="eyebrow">5-hour session</div>
+    <div class="hero"><div class="big">12<small>%</small></div>
+      <div class="reset"><b>1 h 48 m</b><span>until reset</span></div></div>
+    <div class="track warn"><div class="f" style="width:12%"></div><div class="pace" style="left:64%"></div></div>
+    <div class="rows">
+      <div class="row"><div class="h"><span class="l">This week</span><span class="p">64<small>%</small></span></div>
+        <div class="track"><div class="f" style="width:64%"></div></div><div class="s">Resets in 3 d 4 h</div></div>
+      <div class="row"><div class="h"><span class="l">This week · Fable</span><span class="p">91<small>%</small></span></div>
+        <div class="track"><div class="f" style="width:91%"></div></div><div class="s">Resets in 3 d 4 h</div></div>
+    </div>
+    <div class="foot"><span class="pill"><span class="dot" style="background:#d9a441"></span>Cached · 12:01</span><span class="r"><span>↻</span><span>⚙︎</span></span></div>
+  </div>
+</div></div>

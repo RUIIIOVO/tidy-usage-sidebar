@@ -1,0 +1,97 @@
+<!doctype html><meta charset="utf-8"><title>tidy-usage — v3</title>
+<style>
+:root{--sans:-apple-system,"SF Pro Text","PingFang SC",system-ui;--serif:"New York","Iowan Old Style",Georgia,serif;--amber:#d98a2b}
+*{box-sizing:border-box;margin:0}
+body{font-family:var(--sans);background:#0e0e10;color:#ddd;padding:44px 56px;-webkit-font-smoothing:antialiased}
+h2{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#77777f;margin:0 0 14px}
+.strip{display:grid;grid-template-columns:repeat(3,300px);gap:28px;justify-content:center;margin-bottom:48px}
+.var p{font:400 12px/1.65 var(--sans);color:#8b8b95;margin-top:10px}.var p b{color:#d4d4da;font-weight:500}
+.mb{height:28px;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font:500 13px var(--sans);color:#f2f2f5;background:linear-gradient(90deg,#2b2838,#1f1d29)}
+.mb.l{color:#1c1c1e;background:linear-gradient(90deg,#efe6da,#dcd8e8)}
+.ti{display:flex;align-items:center;gap:4px;padding:0 6px;height:22px;border-radius:5px}
+.ti.on{background:rgba(255,255,255,.18)}.mb.l .ti.on,.light .ti.on{background:rgba(0,0,0,.1)}
+.ti .gap{width:5px}
+.wrap{display:flex;gap:56px;justify-content:center}
+.desk{width:400px;height:800px;border-radius:16px;position:relative;overflow:hidden}
+.dark .desk{background:radial-gradient(120% 80% at 15% 0%,#3a3550,#1b1a26 55%,#111018)}
+.light .desk{background:radial-gradient(120% 80% at 15% 0%,#f3e6d6,#d9d3e6 55%,#c6cfe0)}
+.desk .mb{border-radius:0;background:rgba(20,20,26,.5)}.light .desk .mb{background:rgba(255,255,255,.5);color:#1c1c1e}
+.pop{position:absolute;right:12px;top:34px;width:324px;border-radius:14px;padding:6px 16px 10px;backdrop-filter:blur(40px) saturate(1.6)}
+.dark .pop{background:rgba(38,37,46,.74);color:#f4f3f6;box-shadow:0 0 0 .5px rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.5),inset 0 .5px 0 rgba(255,255,255,.16);--mut:rgba(244,243,246,.5);--faint:rgba(244,243,246,.28);--hair:rgba(255,255,255,.09);--hov:rgba(255,255,255,.06)}
+.light .pop{background:rgba(250,248,245,.8);color:#1d1c20;box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 24px 60px rgba(60,50,90,.28),inset 0 .5px 0 #fff;--mut:rgba(29,28,32,.5);--faint:rgba(29,28,32,.25);--hair:rgba(0,0,0,.08);--hov:rgba(0,0,0,.04)}
+.src{padding:12px 0 6px;border-bottom:.5px solid var(--hair)}
+.src:last-of-type{border-bottom:0}
+.sh{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px 6px}
+.sh .t{font:600 13px var(--sans)}
+.sh .a{font:400 10.5px var(--sans);color:var(--mut)}
+.grp{font:500 10px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:8px 4px 2px}
+.row{display:grid;grid-template-columns:26px 1fr auto 14px;align-items:center;gap:10px;padding:7px 4px;border-radius:7px}
+.row.hov{background:var(--hov)}
+.row .l b{display:block;font:500 12.5px var(--sans)}
+.row .l span{font:400 10.5px var(--sans);color:var(--mut)}
+.row .p{font:400 22px var(--serif);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.row .p small{font-size:12px;color:var(--mut);margin-left:1px}
+.row.low .p{color:var(--amber)}
+.pin{width:14px;height:14px;opacity:0}
+.row.pinned .pin{opacity:1}.row.hov .pin{opacity:.45}
+.foot{display:flex;justify-content:space-between;padding:9px 4px 0;border-top:.5px solid var(--hair);font:400 11px var(--sans);color:var(--mut)}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#7fbf9a;margin-right:5px;vertical-align:1px}
+.legend{display:flex;gap:26px;justify-content:center;margin:-24px 0 44px;font:400 12px var(--sans);color:#8b8b95;align-items:center}
+.legend span{display:flex;gap:8px;align-items:center}
+</style>
+<body>
+<h2 style="text-align:center">Menu bar — rings only · hollow = 5 hours · center dot = week</h2>
+<div class="strip">
+ <div class="var"><div class="mb"><span>Wed 10:22</span><div class="ti on" data-rings="5:.85 7:.32 | 7:.85"></div></div>
+  <p><b>空心 = 5 小时 · 带中心点 = 周</b><br>用轮廓区分窗口类型，在 16px 下也能一眼认出。环的填充表示剩余量。<br>示例是自选的 3 个环：Claude 5 小时、Claude 本周，以及 Gemini 每周。不同来源之间多留一点间距。</p></div>
+ <div class="var"><div class="mb l"><span>Wed 10:22</span><div class="ti on" data-rings="5:.12 7:.32 | 7:.85"></div></div>
+  <p><b>告急</b><br>某个环剩余低于 20% 时，只有这一个环变成琥珀色，其余保持单色（跟随系统深浅色）。</p></div>
+ <div class="var"><div class="mb"><span>Wed 10:22</span><div class="ti on" data-rings="7:.32"></div></div>
+  <p><b>最少：只选一个</b><br>显示哪些环、按什么顺序，都由你决定。在面板里点每行右侧的图钉就能加入或移出菜单栏，至少保留一个。</p></div>
+</div>
+<div class="legend"><span data-r="5:.6:18"></span>5 小时窗口<span data-r="7:.6:18"></span>周窗口<span style="color:#666">· 填充 = 剩余</span></div>
+
+<div class="wrap" id="wrap"></div>
+
+<script>
+function ring(n,frac,size=16,color='currentColor',low=false){
+  {const c=size/2,sw=size>=20?2.4:2,r=size/2-sw/2-.4,C=2*Math.PI*r,col=low?'#d98a2b':color;
+    const dot=n===7?`<circle cx="${c}" cy="${c}" r="${size>=20?2.6:1.9}" fill="${col}"/>`:'';
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block"><circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${col}" stroke-opacity=".22" stroke-width="${sw}"/><circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${C*frac} ${C}" transform="rotate(-90 ${c} ${c})"/>${dot}</svg>`;}
+  const c=size/2, r=size/2-1.6, sw=size>=20?2.2:1.9, gapDeg=n>1?(size>=20?16:22):0;
+  const seg=360/n, col=low?'#d98a2b':color; let s='';
+  const pt=a=>{const t=(a-90)*Math.PI/180;return [c+r*Math.cos(t),c+r*Math.sin(t)]};
+  const arc=(a0,a1,op)=>{if(a1-a0<.5)return'';const [x0,y0]=pt(a0),[x1,y1]=pt(a1);return `<path d="M${x0} ${y0}A${r} ${r} 0 ${a1-a0>180?1:0} 1 ${x1} ${y1}" fill="none" stroke="${col}" stroke-opacity="${op}" stroke-width="${sw}" stroke-linecap="round"/>`};
+  const fillEnd=360*frac;
+  for(let i=0;i<n;i++){const a0=i*seg+gapDeg/2,a1=(i+1)*seg-gapDeg/2;
+    s+=arc(a0,a1,.24);
+    const f1=Math.min(a1,fillEnd); if(f1>a0) s+=arc(a0,f1,1);}
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block">${s}</svg>`;
+}
+document.querySelectorAll('[data-rings]').forEach(el=>{
+  el.innerHTML=el.dataset.rings.split(' ').map(t=>t==='|'?'<span class="gap"></span>':(([n,f])=>ring(+n,+f,16,'currentColor',+f<.2))(t.split(':'))).join('');
+});
+document.querySelectorAll('[data-r]').forEach(el=>{const [n,f,s]=el.dataset.r.split(':');el.innerHTML=ring(+n,+f,+s,'#bbb')});
+
+const PIN='<svg class="pin" viewBox="0 0 16 16"><path d="M5.5 2h5l-.8 4.2 2.3 2.3v1H9v4.5L8 15l-1-1V9.5H4v-1l2.3-2.3z" fill="currentColor"/></svg>';
+const row=(n,frac,label,sub,o={})=>`<div class="row ${o.pin?'pinned':''} ${o.hov?'hov':''} ${frac<.2?'low':''}">${ring(n,frac,24,'currentColor',frac<.2)}<div class="l"><b>${label}</b><span>${sub}</span></div><div class="p">${Math.round(frac*100)}<small>%</small></div>${PIN}</div>`;
+const panel=theme=>`<div class="${theme}"><h2>Popover · ${theme}</h2><div class="desk">
+ <div class="mb"><span>Wed 10:22</span><div class="ti on">${ring(5,.85)}${ring(7,.32)}<span class="gap"></span>${ring(7,.85)}</div></div>
+ <div class="pop">
+  <div class="src"><div class="sh"><span class="t">Claude</span><span class="a">you@example.com</span></div>
+   ${row(5,.85,'5 小时','38 分钟后重置',{pin:1})}
+   ${row(7,.32,'本周','1 天 23 小时后重置',{pin:1})}
+   ${row(7,.89,'本周 · Fable','1 天 23 小时后重置',{hov:1})}
+  </div>
+  <div class="src"><div class="sh"><span class="t">Antigravity</span><span class="a">you@gmail.com</span></div>
+   <div class="grp">Gemini Models</div>
+   ${row(5,1,'5 小时','满额 · 未开始计时')}
+   ${row(7,.85,'每周','4 天 23 小时后重置',{pin:1})}
+   <div class="grp">Claude and GPT Models</div>
+   ${row(5,1,'5 小时','满额 · 未开始计时')}
+   ${row(7,1,'每周','满额 · 未开始计时')}
+  </div>
+  <div class="foot"><span><span class="dot"></span>10:22 更新</span><span>↻ &nbsp; ⚙︎</span></div>
+ </div></div></div>`;
+document.getElementById('wrap').innerHTML=panel('dark')+panel('light');
+</script>

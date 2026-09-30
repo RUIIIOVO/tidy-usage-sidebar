@@ -1,0 +1,101 @@
+<!doctype html><meta charset="utf-8"><title>tidy-usage — v2</title>
+<style>
+:root{--sans:-apple-system,"SF Pro Text",system-ui;--serif:"New York","Iowan Old Style",Georgia,serif;--amber:#d98a2b}
+*{box-sizing:border-box;margin:0}
+body{font-family:var(--sans);background:#0e0e10;color:#ddd;padding:48px 56px;-webkit-font-smoothing:antialiased}
+h2{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#77777f;margin:0 0 14px}
+.wrap{display:flex;gap:56px;justify-content:center}
+/* ---------- menu bar strip ---------- */
+.strip{display:flex;gap:28px;justify-content:center;margin-bottom:56px}
+.var{width:300px}
+.var p{font:400 12px/1.6 var(--sans);color:#8b8b95;margin-top:10px}.var p b{color:#d4d4da;font-weight:500}
+.mb{height:28px;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font:500 13px var(--sans);color:#f2f2f5;background:linear-gradient(90deg,#2b2838,#1f1d29)}
+.mb.l{color:#1c1c1e;background:linear-gradient(90deg,#efe6da,#dcd8e8)}
+.mb .dim{opacity:.85}
+.ti{display:flex;align-items:center;gap:5px;padding:0 6px;height:22px;border-radius:5px}
+.ti.on{background:rgba(255,255,255,.18)}.mb.l .ti.on{background:rgba(0,0,0,.1)}
+.ti .n{font:600 12.5px var(--sans);font-variant-numeric:tabular-nums}
+.ring{width:15px;height:15px}
+/* ---------- popover ---------- */
+.desk{width:400px;height:720px;border-radius:16px;position:relative;overflow:hidden}
+.dark .desk{background:radial-gradient(120% 80% at 15% 0%,#3a3550,#1b1a26 55%,#111018)}
+.light .desk{background:radial-gradient(120% 80% at 15% 0%,#f3e6d6,#d9d3e6 55%,#c6cfe0)}
+.desk .mb{border-radius:0;background:rgba(20,20,26,.5)}.light .desk .mb{background:rgba(255,255,255,.5);color:#1c1c1e}
+.pop{position:absolute;right:12px;top:34px;width:320px;border-radius:14px;padding:18px 18px 10px;backdrop-filter:blur(40px) saturate(1.6)}
+.dark .pop{background:rgba(38,37,46,.74);color:#f4f3f6;box-shadow:0 0 0 .5px rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.5),inset 0 .5px 0 rgba(255,255,255,.16);--mut:rgba(244,243,246,.5);--track:rgba(255,255,255,.12);--hair:rgba(255,255,255,.09);--fill:#f4f3f6}
+.light .pop{background:rgba(250,248,245,.8);color:#1d1c20;box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 24px 60px rgba(60,50,90,.28),inset 0 .5px 0 #fff;--mut:rgba(29,28,32,.5);--track:rgba(0,0,0,.09);--hair:rgba(0,0,0,.08);--fill:#1d1c20}
+.eb{font:500 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.hero{display:flex;align-items:flex-end;justify-content:space-between;margin-top:4px}
+.big{font:400 56px/.95 var(--serif);letter-spacing:-.03em}
+.big small{font-size:20px;color:var(--mut);margin-left:2px;letter-spacing:0}
+.hero .who{text-align:right;padding-bottom:5px}
+.hero .who b{display:block;font:500 13px var(--sans)}
+.hero .who span{font:400 11px var(--sans);color:var(--mut)}
+.track{height:3px;border-radius:2px;background:var(--track);position:relative}
+.track .f{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--fill)}
+.track.low .f{background:var(--amber)}
+.track .pace{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--mut)}
+.hero+.track{height:4px;margin-top:12px}
+.sec{margin-top:18px;padding-top:12px;border-top:.5px solid var(--hair)}
+.sh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.sh .t{font:600 12.5px var(--sans);display:flex;align-items:center;gap:7px}
+.sh .t i{width:6px;height:6px;border-radius:2px;display:inline-block}
+.sh .a{font:400 10.5px var(--sans);color:var(--mut)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+.cell .k{display:flex;justify-content:space-between;align-items:baseline}
+.cell .k span{font:500 10px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.cell .k b{font:400 19px var(--serif);font-weight:400;font-variant-numeric:tabular-nums}
+.cell .k b small{font-size:11px;color:var(--mut)}
+.cell .track{margin-top:6px}
+.cell .r{margin-top:5px;font:400 10.5px var(--sans);color:var(--mut)}
+.sub{margin-top:10px;display:flex;justify-content:space-between;font:400 11px var(--sans);color:var(--mut)}
+.sub b{font:400 12px var(--serif);color:inherit}
+.fold{margin-top:6px;font:400 11px var(--sans);color:var(--mut)}
+.foot{display:flex;justify-content:space-between;margin-top:14px;padding-top:9px;border-top:.5px solid var(--hair);font:400 11px var(--sans);color:var(--mut)}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#7fbf9a;margin-right:5px;vertical-align:1px}
+</style>
+
+<h2 style="text-align:center">Menu bar — one item, three options</h2>
+<div class="strip">
+ <div class="var"><div class="mb"><span class="dim">Tue 10:22</span>
+   <div class="ti on"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="37.7" stroke-dashoffset="25.6" transform="rotate(-90 8 8)"/></svg><span class="n">32</span></div></div>
+   <p><b>A · 瓶颈（推荐）</b><br>一个细圆环加一个数字，显示<b>所有额度里剩得最少的那个</b>（这里是 Claude 本周 32%）。圆环就是这个数字的图形。</p></div>
+ <div class="var"><div class="mb l"><span class="dim">Tue 10:22</span>
+   <div class="ti on"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="#d98a2b" stroke-opacity=".3" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="#d98a2b" stroke-width="2" stroke-linecap="round" stroke-dasharray="37.7" stroke-dashoffset="33.2" transform="rotate(-90 8 8)"/></svg><span class="n" style="color:#c9772b">12</span></div></div>
+   <p><b>A · 告急时</b><br>低于 20%，圆环和数字变成琥珀色，这是唯一会出现的颜色。</p></div>
+ <div class="var"><div class="mb"><span class="dim">Tue 10:22</span>
+   <div class="ti on"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="37.7" stroke-dashoffset="25.6" transform="rotate(-90 8 8)"/></svg></div></div>
+   <p><b>A′ · 只留圆环</b><br>去掉数字，占位最小，扫一眼能看出大概。可在设置里切换。</p></div>
+</div>
+
+<div class="wrap">
+<script>
+const panel = (theme)=>`
+<div class="${theme}"><h2>${theme==='dark'?'Popover · dark':'Popover · light'}</h2><div class="desk">
+ <div class="mb"><span class="dim">Tue 10:22</span><div class="ti on"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="37.7" stroke-dashoffset="25.6" transform="rotate(-90 8 8)"/></svg><span class="n">32</span></div></div>
+ <div class="pop">
+  <div class="eb">Tightest limit</div>
+  <div class="hero"><div class="big">32<small>%</small></div>
+   <div class="who"><b>Claude · This week</b><span>resets in 2 d 16 h</span></div></div>
+  <div class="track"><div class="f" style="width:32%"></div><div class="pace" style="left:62%"></div></div>
+
+  <div class="sec"><div class="sh"><span class="t"><i style="background:#d97757"></i>Claude</span><span class="a">you@example.com</span></div>
+   <div class="grid">
+    <div class="cell"><div class="k"><span>5 hr</span><b>85<small>%</small></b></div><div class="track"><div class="f" style="width:85%"></div></div><div class="r">in 38 min</div></div>
+    <div class="cell"><div class="k"><span>Week</span><b>32<small>%</small></b></div><div class="track"><div class="f" style="width:32%"></div></div><div class="r">in 2 d 16 h</div></div>
+   </div>
+   <div class="sub"><span>Fable · week</span><b>89%</b></div></div>
+
+  <div class="sec"><div class="sh"><span class="t"><i style="background:#6f8fe8"></i>Gemini</span><span class="a">Antigravity</span></div>
+   <div class="grid">
+    <div class="cell"><div class="k"><span>5 hr</span><b>100<small>%</small></b></div><div class="track"><div class="f" style="width:100%"></div></div><div class="r">idle</div></div>
+    <div class="cell"><div class="k"><span>Week</span><b>85<small>%</small></b></div><div class="track"><div class="f" style="width:85%"></div></div><div class="r">in 5 d 15 h</div></div>
+   </div></div>
+
+  <div class="sec" style="padding-bottom:0"><div class="sh" style="margin:0"><span class="t"><i style="background:var(--mut)"></i>Claude &amp; GPT</span><span class="a">Antigravity · all 100% ›</span></div></div>
+
+  <div class="foot"><span><span class="dot"></span>Updated 10:22</span><span>↻ &nbsp; ⚙︎</span></div>
+ </div></div></div>`;
+document.write(panel('dark')+panel('light'));
+</script>
+</div>

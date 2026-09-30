@@ -1,0 +1,19 @@
+[Unit]
+Description=CLIProxyAPI official quota sidecar for cc-switch
+After=network-online.target
+
+[Service]
+Type=simple
+# 与 CLIProxyAPI 同一个用户，保证能读 auth-dir
+User=root
+Environment=CPA_AUTH_DIR=/root/.cli-proxy-api
+Environment=USAGE_PORT=8318
+Environment=USAGE_BIND=0.0.0.0
+Environment=USAGE_TOKEN=CHANGE_ME_LONG_RANDOM
+Environment=USAGE_TTL=60
+ExecStart=/usr/bin/python3 /opt/cpa-usage/usage_api.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

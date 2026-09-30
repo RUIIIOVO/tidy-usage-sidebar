@@ -1,0 +1,87 @@
+<!doctype html><meta charset="utf-8"><title>tidy-usage — final (C)</title>
+<style>
+:root{--sans:-apple-system,"SF Pro Text","PingFang SC",system-ui;--serif:"New York","Iowan Old Style",Georgia,serif;--or:#f0932b;--rd:#e5484d}
+*{box-sizing:border-box;margin:0}
+body{font-family:var(--sans);background:#0e0e10;color:#ccc;padding:40px 48px;-webkit-font-smoothing:antialiased}
+h2{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#77777f;margin:0 0 14px}
+.wrap{display:flex;gap:48px;justify-content:center}
+.desk{width:420px;height:660px;border-radius:16px;position:relative;overflow:hidden}
+.dark .desk{background:radial-gradient(120% 80% at 15% 0%,#3a3550,#1b1a26 55%,#111018)}
+.light .desk{background:radial-gradient(120% 80% at 15% 0%,#f3e6d6,#d9d3e6 55%,#c6cfe0)}
+.mb{height:24px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 10px;font:500 13px var(--sans)}
+.dark .mb{background:rgba(20,20,26,.5);color:#f2f2f5}.light .mb{background:rgba(255,255,255,.5);color:#1c1c1e}
+.item{display:flex;align-items:center;gap:12px;padding:0 7px;height:22px;border-radius:5px}
+.dark .item{background:rgba(255,255,255,.18)}.light .item{background:rgba(0,0,0,.1)}
+.grp{display:flex;align-items:center;gap:3px}.grp .lg{margin-right:2px}
+.pop{position:absolute;right:10px;top:30px;width:320px;border-radius:14px;padding:6px 16px 10px;backdrop-filter:blur(40px) saturate(1.6)}
+.dark .pop{background:rgba(38,37,46,.74);color:#f4f3f6;box-shadow:0 0 0 .5px rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.5),inset 0 .5px 0 rgba(255,255,255,.16);--mut:rgba(244,243,246,.5);--track:rgba(255,255,255,.11);--hair:rgba(255,255,255,.09);--fill:#f4f3f6;--hov:rgba(255,255,255,.06)}
+.light .pop{background:rgba(250,248,245,.8);color:#1d1c20;box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 24px 60px rgba(60,50,90,.28),inset 0 .5px 0 #fff;--mut:rgba(29,28,32,.5);--track:rgba(0,0,0,.08);--hair:rgba(0,0,0,.08);--fill:#1d1c20;--hov:rgba(0,0,0,.04)}
+.src{padding:12px 0 6px;border-bottom:.5px solid var(--hair)}
+.sh{display:flex;align-items:center;gap:7px;padding:0 6px 4px}
+.sh b{font:600 13px var(--sans)}.sh span{margin-left:auto;font:400 10.5px var(--sans);color:var(--mut)}
+.gl{font:500 10px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:8px 6px 0}
+.row{padding:7px 6px 8px;border-radius:7px;position:relative}
+.row.hov{background:var(--hov)}
+.l1{display:flex;align-items:baseline;gap:8px}
+.l1 .n{font:500 12.5px var(--sans)}
+.l1 .r{font:400 10.5px var(--sans);color:var(--mut)}
+.l1 .p{margin-left:auto;font:400 17px var(--serif);font-variant-numeric:tabular-nums}
+.l1 .p small{font-size:11px;color:var(--mut);margin-left:1px}
+.pin{width:12px;height:12px;align-self:center;color:var(--mut);opacity:0}
+.row.pinned .pin{opacity:.9}.row.hov .pin{opacity:.5}
+.bar{height:4px;border-radius:2px;background:var(--track);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:2px;background:var(--fill)}
+.row.or .bar i{background:var(--or)}.row.or .p{color:var(--or)}
+.row.rd .bar i{background:var(--rd)}.row.rd .p{color:var(--rd)}
+.foot{display:flex;justify-content:space-between;align-items:center;padding:9px 6px 0;font:400 11px var(--sans);color:var(--mut)}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#7fbf9a;margin-right:6px;vertical-align:1px}
+.icons{display:flex;gap:14px;font-size:13px}
+.zoomwrap{display:flex;gap:48px;justify-content:center;margin-bottom:40px}
+.z{zoom:2.4}
+.legend{max-width:900px;margin:32px auto 0;color:#8b8b95;font-size:12px;line-height:1.8}
+.legend b{color:#ddd;font-weight:500}
+</style>
+<body>
+<h2 style="text-align:center">Menu bar · 2.4×</h2>
+<div class="zoomwrap" id="zoom"></div>
+<div class="wrap" id="wrap"></div>
+<div class="legend">
+<b>左：深色 · 今天的真实数据</b>（10:22 拉取）。<b>右：浅色 · 告警演示</b>：Claude 5 小时已用 93% 变红，本周已用 84% 变橙；菜单栏上对应的环同步变色。<br>
+所有百分比都是<b>已用</b>。悬停的那一行会淡淡显示图钉，点击就能加入或移出菜单栏；已钉的行图钉常亮。
+</div>
+<script>
+const CL="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z",AG="M21.751 22.607c1.34 1.005 3.35.335 1.508-1.508C17.73 15.74 18.904 1 12.037 1 5.17 1 6.342 15.74.815 21.1c-2.01 2.009.167 2.511 1.507 1.506 5.192-3.517 4.857-9.714 9.715-9.714 4.857 0 4.522 6.197 9.714 9.715z";
+const lvl=u=>u>=90?'rd':u>=80?'or':'';
+const hex=(u,c)=>u>=90?'#e5484d':u>=80?'#f0932b':c;
+const logo=(d,c,s=14)=>`<svg class="lg" width="${s}" height="${s}" viewBox="0 0 24 24" style="display:block;flex:none"><path d="${d}" fill="${c}"/></svg>`;
+function ring(u,c,t){const s=15,sw=1.5,x=s/2,r=s/2-sw/2-.2,C=2*Math.PI*r,k=hex(u,c);
+ return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" style="display:block"><circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-opacity=".26" stroke-width="${sw}"/><circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${k}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${C*u/100} ${C}" transform="rotate(-90 ${x} ${x})"/><text x="${x}" y="${x}" dy=".37em" text-anchor="middle" font-family="SF Pro Rounded,-apple-system" font-weight="700" font-size="7.4" fill="${k}">${t}</text></svg>`}
+const PIN='<svg class="pin" viewBox="0 0 16 16"><path d="M5.5 2h5l-.8 4.2 2.3 2.3v1H9v4.5L8 15l-1-1V9.5H4v-1l2.3-2.3z" fill="currentColor"/></svg>';
+const DATA={
+ dark:{c5:15,cw:68,cf:11,g5:0,gw:15,x5:0,xw:0,upd:'<span class="dot"></span>10:22 更新'},
+ light:{c5:93,cw:84,cf:41,g5:22,gw:57,x5:0,xw:3,upd:'<span class="dot" style="background:#d9a441"></span>缓存数据 · 10:21'}
+};
+function menubar(t){const d=DATA[t],c=t==='dark'?'#f2f2f5':'#1c1c1e';
+ return `<div class="mb"><div class="item"><span class="grp">${logo(CL,c)}${ring(d.c5,c,'5')}${ring(d.cw,c,'7')}</span><span class="grp">${logo(AG,c)}${ring(d.g5,c,'5')}${ring(d.gw,c,'7')}</span></div><span>周三 10:22</span></div>`}
+const row=(n,u,r,o={})=>`<div class="row ${lvl(u)} ${o.pin?'pinned':''} ${o.hov?'hov':''}"><div class="l1"><span class="n">${n}</span><span class="r">${r}</span><span class="p">${u}<small>%</small></span>${PIN}</div><div class="bar"><i style="width:${u}%"></i></div></div>`;
+function panel(t){const d=DATA[t],c=t==='dark'?'#f4f3f6':'#1d1c20';
+ return `<div class="${t}"><h2>Popover · ${t}</h2><div class="desk">${menubar(t)}
+ <div class="pop">
+  <div class="src"><div class="sh">${logo(CL,'#d97757',14)}<b>Claude</b><span>you@example.com</span></div>
+   ${row('5 小时',d.c5,'38 分钟后重置',{pin:1})}
+   ${row('本周',d.cw,'1 天 23 小时后重置',{pin:1})}
+   ${row('本周 · Fable',d.cf,'1 天 23 小时后重置',{hov:t==='dark'})}
+  </div>
+  <div class="src" style="border-bottom:0"><div class="sh">${logo(AG,c,14)}<b>Antigravity</b><span>you@gmail.com</span></div>
+   <div class="gl">Gemini Models</div>
+   ${row('5 小时',d.g5,d.g5?'2 小时 10 分后重置':'未开始计时',{pin:1})}
+   ${row('每周',d.gw,'4 天 23 小时后重置',{pin:1})}
+   <div class="gl">Claude and GPT Models</div>
+   ${row('5 小时',d.x5,'未开始计时')}
+   ${row('每周',d.xw,d.xw?'6 天 23 小时后重置':'未开始计时')}
+  </div>
+  <div class="foot" style="border-top:.5px solid var(--hair)"><span>${d.upd}</span><span class="icons">↻ ⚙︎</span></div>
+ </div></div></div>`}
+document.getElementById('wrap').innerHTML=panel('dark')+panel('light');
+document.getElementById('zoom').innerHTML=['dark','light'].map(t=>`<div class="${t}"><div class="z" style="border-radius:6px;overflow:hidden;${t==='dark'?'background:#1f1d29':'background:#e9e3dc'}">${menubar(t)}</div></div>`).join('');
+</script>

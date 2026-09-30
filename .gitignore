@@ -1,0 +1,20 @@
+# 构建产物
+build/
+App/.build/
+App/.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+
+# 本机私有配置（服务地址 / token）
+local.env
+*.env
+!local.env.example
+server/token.env
+
+# 系统
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
