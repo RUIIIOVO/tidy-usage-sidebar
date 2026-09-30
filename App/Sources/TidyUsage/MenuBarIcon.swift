@@ -36,7 +36,17 @@ enum MenuBarIcon {
         for (i, g) in groups.enumerated() {
             if i > 0 { width += groupGap }
             width += logoSize + logoGap
-            width += CGFloat(g.windows.count) * ringSize + CGFloat(g.windows.count - 1) * ringGap
+            let balanceWindows = g.windows.filter { $0.kind == .balance }
+            let ringWindows = g.windows.filter { $0.kind != .balance }
+            if !balanceWindows.isEmpty {
+                // 余额显示：Logo 后跟 ¥XX 文字
+                let text = balanceText(balanceWindows.first!)
+                width += text.size().width
+            }
+            if !ringWindows.isEmpty {
+                if !balanceWindows.isEmpty { width += ringGap }
+                width += CGFloat(ringWindows.count) * ringSize + CGFloat(ringWindows.count - 1) * ringGap
+            }
         }
         width = ceil(width)
 
@@ -52,8 +62,16 @@ enum MenuBarIcon {
                              color: base, ctx: ctx)
                 }
                 x += logoSize + logoGap
-                for (j, w) in g.windows.enumerated() {
-                    if j > 0 { x += ringGap }
+                let balanceWindows = g.windows.filter { $0.kind == .balance }
+                let ringWindows = g.windows.filter { $0.kind != .balance }
+                if let bw = balanceWindows.first {
+                    let text = balanceText(bw)
+                    let sz = text.size()
+                    text.draw(at: CGPoint(x: x, y: (height - sz.height) / 2))
+                    x += sz.width
+                }
+                for (j, w) in ringWindows.enumerated() {
+                    if j > 0 || !balanceWindows.isEmpty { x += ringGap }
                     let rect = CGRect(x: x, y: (height - ringSize) / 2, width: ringSize, height: ringSize)
                     drawRing(used: w.used, glyph: w.glyph, color: w.level.nsColor ?? base, in: rect, ctx: ctx)
                     x += ringSize
@@ -152,5 +170,16 @@ enum MenuBarIcon {
         ctx.setFillColor(color.cgColor)
         ctx.fillPath(using: logo.evenOdd ? .evenOdd : .winding)
         ctx.restoreGState()
+    }
+
+    /// 余额文字：¥42（取整，颜色随预警等级变化）
+    private static func balanceText(_ w: UsageWindow) -> NSAttributedString {
+        let amount = Int((w.balance ?? 0).rounded())
+        let color = w.level.nsColor ?? baseColor()
+        let fontSize: CGFloat = 11
+        var font = NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .semibold)
+        if let d = font.fontDescriptor.withDesign(.rounded), let f = NSFont(descriptor: d, size: fontSize) { font = f }
+        return NSAttributedString(string: "\u{00A5}\(amount)",
+                                  attributes: [.font: font, .foregroundColor: color])
     }
 }

@@ -21,22 +21,35 @@ struct RawWindow: Codable {
     let label: String?
     let utilization: Double
     let resets_at: String?
+    // DeepSeek 余额
+    let balance: Double?
+    let currency: String?
+
+    init(provider: String?, name: String, label: String?, utilization: Double,
+         resets_at: String?, balance: Double? = nil, currency: String? = nil) {
+        self.provider = provider; self.name = name; self.label = label
+        self.utilization = utilization; self.resets_at = resets_at
+        self.balance = balance; self.currency = currency
+    }
 }
 
 // MARK: - 领域模型
 
 /// 一个额度窗口。`used` 是已用百分比（0–100）。
 struct UsageWindow: Identifiable, Hashable {
-    enum Kind { case session, week }
+    enum Kind { case session, week, balance }
 
     let id: String
     let provider: String
     let name: String
     let label: String?
-    let used: Double
+    let used: Double          // 已用百分比（balance 类型时为 0）
     let resetsAt: Date?
+    let balance: Double?      // 余额（仅 balance 类型）
+    let currency: String?     // 货币（仅 balance 类型）
 
     var kind: Kind {
+        if name == "balance" { return .balance }
         let n = name.lowercased()
         return (n == "five_hour" || n == "5h" || n.contains("hour")) ? .session : .week
     }
@@ -60,12 +73,16 @@ struct UsageWindow: Identifiable, Hashable {
         }
     }
 
-    var level: UsageLevel { UsageLevel(used: used) }
+    var level: UsageLevel {
+        if kind == .balance { return BalanceLevel.level(balance ?? 0) }
+        return UsageLevel(used: used)
+    }
 
     /// 还原成接口结构，用于落盘缓存
     var raw: RawWindow {
         RawWindow(provider: provider, name: name, label: label, utilization: used,
-                  resets_at: resetsAt.map { DateParsing.format($0) })
+                  resets_at: resetsAt.map { DateParsing.format($0) },
+                  balance: balance, currency: currency)
     }
 
     init(raw: RawWindow) {
@@ -75,6 +92,8 @@ struct UsageWindow: Identifiable, Hashable {
         self.label = raw.label
         self.used = max(0, min(100, raw.utilization))
         self.resetsAt = raw.resets_at.flatMap(DateParsing.parse)
+        self.balance = raw.balance
+        self.currency = raw.currency
         self.id = UsageWindow.makeID(provider: provider, label: raw.label, name: raw.name)
     }
 
@@ -103,6 +122,15 @@ enum UsageLevel {
     var color: Color? { nsColor.map { Color(nsColor: $0) } }
 }
 
+/// DeepSeek 余额预警等级：< ¥5 橙色，< ¥1 红色
+enum BalanceLevel {
+    static func level(_ balance: Double) -> UsageLevel {
+        if balance < 1 { return .critical }
+        if balance < 5 { return .warning }
+        return .normal
+    }
+}
+
 // MARK: - 面板分组
 
 struct DisplayRow: Identifiable {
@@ -129,7 +157,7 @@ struct ProviderSection: Identifiable {
 }
 
 enum Sections {
-    static let providerOrder = ["claude", "antigravity"]
+    static let providerOrder = ["claude", "antigravity", "deepseek"]
 
     static func build(windows: [UsageWindow], emails: [String: String],
                       staleSince: [String: Date] = [:]) -> [ProviderSection] {
@@ -144,6 +172,10 @@ enum Sections {
                 // Claude：一组，label（如 Fable）并入行标题
                 let rows = list.sorted { claudeRank($0) < claudeRank($1) }
                     .map { DisplayRow(window: $0, title: claudeTitle($0)) }
+                groups = [RowGroup(id: p, title: nil, rows: rows)]
+            } else if p == "deepseek" {
+                // DeepSeek：单行余额
+                let rows = list.map { DisplayRow(window: $0, title: Titles.balance) }
                 groups = [RowGroup(id: p, title: nil, rows: rows)]
             } else {
                 // 其它（Antigravity）：按 label 分小组
@@ -184,6 +216,7 @@ enum Sections {
 enum Titles {
     static let session = "5 小时"
     static let week = "本周"
+    static let balance = "余额"
 }
 
 // MARK: - 服务商外观
@@ -200,11 +233,15 @@ enum ProviderInfo {
         brand: Color(red: 0xD9 / 255, green: 0x77 / 255, blue: 0x57 / 255))
     private static let antigravityLogo = Logo(
         path: SVGPath.parse(LogoPaths.antigravity), evenOdd: true, brand: nil)
+    private static let deepseekLogo = Logo(
+        path: SVGPath.parse(LogoPaths.deepseek), evenOdd: false,
+        brand: Color(red: 0x4D / 255, green: 0x6B / 255, blue: 0xFE / 255))
 
     static func title(_ p: String) -> String {
         switch p {
         case "claude": return "Claude"
         case "antigravity": return "Antigravity"
+        case "deepseek": return "DeepSeek"
         default: return p.prefix(1).uppercased() + p.dropFirst()
         }
     }
@@ -213,6 +250,7 @@ enum ProviderInfo {
         switch p {
         case "claude": return claudeLogo
         case "antigravity": return antigravityLogo
+        case "deepseek": return deepseekLogo
         default: return nil
         }
     }

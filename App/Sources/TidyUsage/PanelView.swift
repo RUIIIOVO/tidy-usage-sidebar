@@ -79,6 +79,7 @@ private struct RowView: View {
 
     private var w: UsageWindow { row.window }
     private var accent: Color { w.level.color ?? .primary }
+    private var isBalance: Bool { w.kind == .balance }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -87,24 +88,39 @@ private struct RowView: View {
                     .font(.system(size: 12.5, weight: .medium))
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                HStack(alignment: .firstTextBaseline, spacing: 1) {
-                    Text("\(Int(w.used.rounded()))")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
-                    Text("%")
-                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
+                if isBalance {
+                    // 余额：¥42.50
+                    HStack(alignment: .firstTextBaseline, spacing: 1) {
+                        Text("\u{00A5}")
+                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.2f", w.balance ?? 0))
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(.primary)
+                    }
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 1) {
+                        Text("\(Int(w.used.rounded()))")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(.primary)
+                        Text("%")
+                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            ProgressBar(fraction: w.used / 100, color: accent)
-                .padding(.top, 6)
-            Text(ResetText.text(for: w, now: now))
-                .font(.system(size: 10.5))
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .padding(.top, 5)
+            if !isBalance {
+                ProgressBar(fraction: w.used / 100, color: accent)
+                    .padding(.top, 6)
+                Text(ResetText.text(for: w, now: now))
+                    .font(.system(size: 10.5))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .padding(.top, 5)
+            }
         }
         // 未显示在菜单栏的行整体变淡；悬停时稍微提亮，提示可点击
         .opacity(pinned ? 1 : (hovering ? 0.7 : 0.45))

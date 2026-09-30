@@ -12,6 +12,7 @@ final class AppSettings: ObservableObject {
         UsageWindow.makeID(provider: "claude", label: nil, name: "seven_day"),
         UsageWindow.makeID(provider: "antigravity", label: "Gemini Models", name: "5h"),
         UsageWindow.makeID(provider: "antigravity", label: "Gemini Models", name: "weekly"),
+        UsageWindow.makeID(provider: "deepseek", label: nil, name: "balance"),
     ]
 
     private let defaults = UserDefaults.standard
@@ -27,6 +28,7 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(pinned, forKey: "pinned") }
     }
     @Published private(set) var token: String
+    @Published private(set) var deepseekKey: String
 
     init() {
         endpoint = defaults.string(forKey: "endpoint") ?? Self.defaultEndpoint
@@ -34,12 +36,19 @@ final class AppSettings: ObservableObject {
         interval = iv > 0 ? iv : Self.defaultInterval
         pinned = defaults.stringArray(forKey: "pinned") ?? Self.defaultPinned
         token = Keychain.read() ?? ""
+        deepseekKey = Keychain.read(account: "deepseek_key") ?? ""
     }
 
     func setToken(_ value: String) {
         let v = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if v.isEmpty { Keychain.delete() } else { Keychain.write(v) }
         token = v
+    }
+
+    func setDeepseekKey(_ value: String) {
+        let v = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if v.isEmpty { Keychain.delete(account: "deepseek_key") } else { Keychain.write(v, account: "deepseek_key") }
+        deepseekKey = v
     }
 
     func isPinned(_ id: String) -> Bool { pinned.contains(id) }
@@ -68,16 +77,15 @@ final class AppSettings: ObservableObject {
 /// Token 存在登录钥匙串里，不落盘到 UserDefaults。
 enum Keychain {
     static let service = "io.github.tidy-usage-sidebar"
-    static let account = "token"
 
-    private static var baseQuery: [String: Any] {
+    private static func baseQuery(account: String = "token") -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service,
          kSecAttrAccount as String: account]
     }
 
-    static func read() -> String? {
-        var q = baseQuery
+    static func read(account: String = "token") -> String? {
+        var q = baseQuery(account: account)
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
         var out: AnyObject?
@@ -86,17 +94,18 @@ enum Keychain {
         return String(data: data, encoding: .utf8)
     }
 
-    static func write(_ value: String) {
+    static func write(_ value: String, account: String = "token") {
         let data = Data(value.utf8)
-        let status = SecItemUpdate(baseQuery as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        let q = baseQuery(account: account)
+        let status = SecItemUpdate(q as CFDictionary, [kSecValueData as String: data] as CFDictionary)
         if status == errSecItemNotFound {
-            var q = baseQuery
-            q[kSecValueData as String] = data
-            SecItemAdd(q as CFDictionary, nil)
+            var q2 = q
+            q2[kSecValueData as String] = data
+            SecItemAdd(q2 as CFDictionary, nil)
         }
     }
 
-    static func delete() {
-        SecItemDelete(baseQuery as CFDictionary)
+    static func delete(account: String = "token") {
+        SecItemDelete(baseQuery(account: account) as CFDictionary)
     }
 }

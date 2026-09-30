@@ -46,6 +46,42 @@ enum UsageClient {
         }
         return body
     }
+
+    // MARK: - DeepSeek 余额
+
+    struct DeepSeekBalanceResponse: Decodable {
+        let is_available: Bool?
+        let balance_infos: [BalanceInfo]?
+        struct BalanceInfo: Decodable {
+            let currency: String
+            let total_balance: String
+            let granted_balance: String?
+            let topped_up_balance: String?
+        }
+    }
+
+    static func fetchDeepSeekBalance(apiKey: String) async throws -> RawWindow {
+        let url = URL(string: "https://api.deepseek.com/user/balance")!
+        var req = URLRequest(url: url)
+        req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("tidy-usage-sidebar/1.0", forHTTPHeaderField: "User-Agent")
+
+        let (data, resp) = try await session.data(for: req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw UsageError.unauthorized }
+        guard let body = try? JSONDecoder().decode(DeepSeekBalanceResponse.self, from: data) else {
+            throw code == 200 ? UsageError.decode : UsageError.http(code)
+        }
+        // 取第一个 CNY 余额
+        guard let info = body.balance_infos?.first(where: { $0.currency == "CNY" }) ?? body.balance_infos?.first else {
+            throw UsageError.server("DeepSeek 无余额信息")
+        }
+        let total = Double(info.total_balance) ?? 0
+        return RawWindow(provider: "deepseek", name: "balance", label: nil,
+                         utilization: 0, resets_at: nil,
+                         balance: total, currency: info.currency)
+    }
 }
 
 @MainActor
@@ -148,38 +184,75 @@ final class UsageStore: ObservableObject {
         isLoading = true
         lastAttempt = Date()
         defer { isLoading = false }
-        do {
-            let body = try await UsageClient.fetch(endpoint: settings.endpoint, token: settings.token)
-            let fresh = (body.windows ?? []).map(UsageWindow.init(raw:))
-            let queried = body.queried_at.map { Date(timeIntervalSince1970: $0) } ?? Date()
-            let freshProviders = Set(fresh.map(\.provider))
-            for p in freshProviders { lastGoodAt[p] = queried }
 
-            // 一家失败（常见：Anthropic 额度接口 429 限流）不应让它从面板和菜单栏消失，
-            // 沿用它上一次的窗口并标记为旧数据
-            var merged = fresh
-            var staleSince: [String: Date] = [:]
-            for p in Set(windows.map(\.provider)).subtracting(freshProviders) {
-                merged += windows.filter { $0.provider == p }
-                staleSince[p] = lastGoodAt[p]
+        // 先在 MainActor 上捕获值
+        let ep = settings.endpoint
+        let tk = settings.token
+        let dsKey = settings.deepseekKey
+
+        // 并行：主端点 + DeepSeek
+        async let mainResult: Result<UsageResponse, Error> = {
+            guard !ep.isEmpty else { return .failure(UsageError.badURL) }
+            do { return .success(try await UsageClient.fetch(endpoint: ep, token: tk)) }
+            catch { return .failure(error) }
+        }()
+        async let dsResult: Result<RawWindow, Error> = {
+            guard !dsKey.isEmpty else { return .failure(UsageError.noToken) }
+            do { return .success(try await UsageClient.fetchDeepSeekBalance(apiKey: dsKey)) }
+            catch { return .failure(error) }
+        }()
+
+        let main = await mainResult
+        let ds = await dsResult
+
+        let queried = Date()
+        var freshWindows: [UsageWindow] = []
+        var freshProviders = Set<String>()
+        var mainOK = false
+
+        // 主端点
+        if case .success(let body) = main {
+            let ws = (body.windows ?? []).map(UsageWindow.init(raw:))
+            freshWindows.append(contentsOf: ws)
+            let bodyQueried = body.queried_at.map { Date(timeIntervalSince1970: $0) } ?? queried
+            for p in Set(ws.map(\.provider)) {
+                freshProviders.insert(p)
+                lastGoodAt[p] = bodyQueried
             }
-            windows = merged
-            providerStaleSince = staleSince
-            saveCache()
             providerErrors = body.errors ?? [:]
-
             var mails = emails
             for (k, v) in body.emails ?? [:] { if let v { mails[k] = v } }
             if mails["claude"] == nil, let e = body.email { mails["claude"] = e }
             emails = mails
             serverStale = body.stale ?? false
-            dataTime = queried
-            errorMessage = nil
-
-            // 有服务商这次缺席（通常是上游 429），30 秒后单独补一次，不必等下一轮轮询
-            if !staleSince.isEmpty { scheduleRetry() }
-        } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            dataTime = bodyQueried
+            mainOK = true
         }
+
+        // DeepSeek
+        if case .success(let raw) = ds {
+            freshWindows.append(UsageWindow(raw: raw))
+            freshProviders.insert("deepseek")
+            lastGoodAt["deepseek"] = queried
+        }
+
+        // 合并旧数据
+        var merged = freshWindows
+        var staleSince: [String: Date] = [:]
+        for p in Set(windows.map(\.provider)).subtracting(freshProviders) {
+            merged += windows.filter { $0.provider == p }
+            staleSince[p] = lastGoodAt[p]
+        }
+        windows = merged
+        providerStaleSince = staleSince
+        saveCache()
+
+        if mainOK || !freshWindows.isEmpty {
+            errorMessage = nil
+        } else if case .failure(let err) = main {
+            errorMessage = (err as? LocalizedError)?.errorDescription ?? err.localizedDescription
+        }
+
+        if !staleSince.isEmpty { scheduleRetry() }
     }
 }

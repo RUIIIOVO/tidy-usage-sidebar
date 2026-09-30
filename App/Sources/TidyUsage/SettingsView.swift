@@ -6,6 +6,7 @@ struct SettingsView: View {
 
     @State private var endpoint = ""
     @State private var token = ""
+    @State private var deepseekKey = ""
     @State private var testResult: String?
     @State private var testing = false
     @State private var launchAtLogin = false
@@ -28,6 +29,13 @@ struct SettingsView: View {
                 }
             }
 
+            Section("DeepSeek") {
+                SecureField("API Key", text: $deepseekKey, prompt: Text("sk-... · 存放在钥匙串"))
+                    .onChange(of: deepseekKey) { _, v in settings.setDeepseekKey(v) }
+                Text("直接调用 DeepSeek 官方余额接口，无需经过中继服务。")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
+
             Section("行为") {
                 Picker("刷新间隔", selection: $settings.interval) {
                     ForEach(intervals, id: \.1) { Text($0.0).tag($0.1) }
@@ -42,6 +50,7 @@ struct SettingsView: View {
         .onAppear {
             endpoint = settings.endpoint
             token = settings.token
+            deepseekKey = settings.deepseekKey
             launchAtLogin = settings.launchAtLogin
         }
     }
