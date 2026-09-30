@@ -23,7 +23,7 @@
 
 <br>
 
-在 macOS 菜单栏常驻显示 Claude、Antigravity (Gemini) 等 AI 平台的 5 小时 / 每周用量消耗。拒绝臃肿进程，只为抬头一瞥即知余量。
+在 macOS 菜单栏常驻显示 Claude、Antigravity (Gemini)、DeepSeek 等 AI 平台的额度与余额。拒绝臃肿进程，只为抬头一瞥即知余量。
 
 <div align="center">
   <img src="docs/images/menubar.png" alt="Menu Bar" height="30">
@@ -33,12 +33,13 @@
 
 ## 特性
 
-- **菜单栏环形进度** — Logo 后面跟 `5`（5 小时窗口）和 `7`（7 天窗口）两个圆环，填充比例即已用百分比。≥ 80% 橙色预警，≥ 90% 红色警示，常态下单色融入系统深浅色菜单栏。
+- **菜单栏环形进度 & 余额** — 额度类服务显示 Logo 与 `5`/`7` 环形进度；DeepSeek 余额显示 Logo 与实时金额（如 `¥19`）。≥ 80% 橙色预警，≥ 90% 红色警示（余额 < ¥5 橙色，< ¥1 红色），常态下单色融入系统菜单栏。
 - **点击即时钉选** — 面板中点击任意行即可将该指标钉上 / 撤下菜单栏，未钉选行半透明弱化。未钉选任何指标时显示 `gauge.with.needle` 空状态。
-- **原生毛玻璃面板** — 无边框 `NSPanel`，锚定菜单栏图标位置，菜单栏宽度变化不跳动。进度条下方显示自适应重置倒计时（< 24h 显示"X 小时 Y 分后重置"，≥ 24h 显示日期时间）。
-- **零凭据风险** — 客户端仅向自建只读聚合端拉取脱敏数据，Token 存入 macOS Keychain。
-- **429 容灾** — 上游 429 时保持上次成功数据，服务商不会闪退消失。磁盘持久化缓存，冷启动即刻展示历史用量。缺失服务商 30 秒后自动补拉。
-- **防抖交互** — 刷新按钮整圈旋转不卡半截，所有操作全面防抖节流。
+- **原生毛玻璃面板** — 无边框 `NSPanel`，锚定菜单栏图标位置，菜单栏宽度变化不跳动。进度条下方显示自适应重置倒计时（< 24h 显示倒计时，≥ 24h 显示日期时间）。
+- **零凭据风险** — 客户端向自建聚合端拉取脱敏数据，或直连官方 API（如 DeepSeek），Token / Key 均存入 macOS Keychain，无需写回明文配置。
+- **相对更新时间** — 面板底部显示人性化更新时间（刚刚更新 / X 分钟前更新 / 昨天 HH:mm 更新），悬停可查看精确到秒的刷新时间与服务端取数时间。
+- **429 容灾 & 离线缓存** — 上游 429 时保持上次成功数据，服务商不会闪退消失。磁盘持久化缓存，冷启动即刻展示历史用量。缺失服务商 30 秒后自动补拉。
+- **防抖交互** — 刷新按钮整圈旋转不卡半截，退出二次确认，所有操作全面防抖节流。
 
 ---
 
@@ -89,6 +90,15 @@ Authorization: Bearer <TOKEN>
       "label": "Gemini Models",
       "utilization": 92.4,
       "resets_at": "2026-10-01T12:00:00Z"
+    },
+    {
+      "provider": "deepseek",
+      "name": "balance",
+      "label": null,
+      "utilization": 0,
+      "resets_at": null,
+      "balance": 18.58,
+      "currency": "CNY"
     }
   ],
   "queried_at": 1790734952
@@ -97,11 +107,13 @@ Authorization: Bearer <TOKEN>
 
 | 字段 | 说明 |
 |------|------|
-| `provider` | `claude` / `antigravity`，其他值降级为文本图标 |
-| `name` | 含 `5h` / `five_hour` → 5 小时窗口；`weekly` / `seven_day` → 周窗口 |
+| `provider` | `claude` / `antigravity` / `deepseek`，其他值降级为首字母文本图标 |
+| `name` | 含 `5h` / `five_hour` → 5 小时窗口；`weekly` / `seven_day` → 周窗口；`balance` → 余额 |
 | `label` | 子模型标签，如 `Fable`（菜单栏环上显示首字母 `F`） |
-| `utilization` | 已用百分比 0.0–100.0 |
-| `resets_at` | ISO 8601 格式额度刷新时间 |
+| `utilization` | 已用百分比 0.0–100.0（余额类型为 0） |
+| `resets_at` | ISO 8601 格式额度刷新时间（余额类型为 null） |
+| `balance` | 可选，数值型余额（仅 `balance` 类型） |
+| `currency` | 可选，货币代码如 `CNY` |
 
 配套服务端参考实现见 [`server/`](server/) 目录。
 
@@ -131,4 +143,4 @@ scripts/build.sh          # 编译签名安装脚本
 
 [MIT](LICENSE)
 
-Logo 版权：Claude 徽标取自 [Simple Icons](https://simpleicons.org) (CC0)，Antigravity 徽标取自 [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT)，商标归各自所有者。
+Logo 版权：Claude 与 DeepSeek 徽标取自 [Simple Icons](https://simpleicons.org) (CC0)，Antigravity 徽标取自 [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT)，商标归各自所有者。
