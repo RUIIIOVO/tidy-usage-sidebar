@@ -226,6 +226,30 @@ enum ProviderInfo {
         let path: CGPath
         let evenOdd: Bool
         let brand: Color?
+
+        init(path: CGPath, evenOdd: Bool, brand: Color?) {
+            self.path = Logo.normalized(path)
+            self.evenOdd = evenOdd
+            self.brand = brand
+        }
+
+        /// 各家 SVG 的留白差异很大（DeepSeek 鲸鱼只有 17.8 高，Claude 是 24），
+        /// 若统一按 24 的 viewBox 缩放，鲸鱼会显得小一圈。
+        /// 这里把每家的视觉包围盒等比归一化：高度对齐到同一个值，
+        /// 宽度超过上限时再按宽度回缩，最后居中到 24×24 画布。
+        /// 后续绘制代码仍按 /24 缩放即可，无需知道这层差异。
+        private static func normalized(_ p: CGPath) -> CGPath {
+            let b = p.boundingBox
+            guard b.width > 0, b.height > 0 else { return p }
+            let targetHeight: CGFloat = 24 * 0.9      // 统一视觉高度
+            let maxWidth: CGFloat = 24 * 1.12         // 扁宽图形（鲸鱼）的宽度上限
+            var scale = targetHeight / b.height
+            if b.width * scale > maxWidth { scale = maxWidth / b.width }
+            let cx = b.minX + b.width / 2, cy = b.minY + b.height / 2
+            var t = CGAffineTransform(translationX: 12 - cx * scale, y: 12 - cy * scale)
+                .scaledBy(x: scale, y: scale)
+            return p.copy(using: &t) ?? p
+        }
     }
 
     private static let claudeLogo = Logo(

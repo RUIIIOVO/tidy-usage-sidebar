@@ -172,14 +172,27 @@ enum MenuBarIcon {
         ctx.restoreGState()
     }
 
-    /// 余额文字：¥42（取整，颜色随预警等级变化）
+    /// 余额文字：¥42（整数；小于 10 时保留一位小数，避免 ¥19.9 显示成 ¥20 看不出快没钱）
+    /// 字体与环内数字（8pt bold rounded）保持同一家族，字号略大一点做区分；
+    /// ¥ 号做小、做淡，不要跟数字抢视觉重量。
     private static func balanceText(_ w: UsageWindow) -> NSAttributedString {
-        let amount = Int((w.balance ?? 0).rounded())
+        let value = w.balance ?? 0
+        let amount = value < 10 ? String(format: "%.1f", value) : "\(Int(value.rounded()))"
         let color = w.level.nsColor ?? baseColor()
-        let fontSize: CGFloat = 11
-        var font = NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .semibold)
-        if let d = font.fontDescriptor.withDesign(.rounded), let f = NSFont(descriptor: d, size: fontSize) { font = f }
-        return NSAttributedString(string: "\u{00A5}\(amount)",
-                                  attributes: [.font: font, .foregroundColor: color])
+        let symbolColor = color.withAlphaComponent(color.alphaComponent * 0.62)
+
+        func rounded(_ size: CGFloat, _ weight: NSFont.Weight) -> NSFont {
+            let base = NSFont.systemFont(ofSize: size, weight: weight)
+            if let d = base.fontDescriptor.withDesign(.rounded), let f = NSFont(descriptor: d, size: size) { return f }
+            return base
+        }
+
+        let s = NSMutableAttributedString(
+            string: "\u{00A5}",
+            attributes: [.font: rounded(9, .medium), .foregroundColor: symbolColor])
+        s.append(NSAttributedString(
+            string: amount,
+            attributes: [.font: rounded(10.5, .semibold), .foregroundColor: color]))
+        return s
     }
 }
