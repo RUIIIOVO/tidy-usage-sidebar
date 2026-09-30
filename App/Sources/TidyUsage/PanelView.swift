@@ -116,7 +116,10 @@ private struct RowView: View {
         )
         // 整行都可点击：切换是否显示在菜单栏
         .contentShape(Rectangle())
-        .onTapGesture(perform: togglePin)
+        .onTapGesture {
+            guard Throttle.allow("pin|\(row.id)", interval: 0.3) else { return }
+            togglePin()
+        }
         .help(pinned ? "已显示在菜单栏 · 点击移除" : "点击显示在菜单栏")
         .onHover { hovering = $0 }
         .pointingHandCursor()
@@ -203,24 +206,21 @@ private struct FooterView: View {
                     .help(store.errorMessage ?? "")
             }
             Spacer()
-            Button {
-                Task { await store.refresh() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .rotationEffect(.degrees(store.isLoading ? 360 : 0))
-                    .animation(store.isLoading ? .linear(duration: 0.8).repeatForever(autoreverses: false) : .default,
-                               value: store.isLoading)
-            }
-            .buttonStyle(IconButtonStyle())
-            .help("刷新")
+            RefreshButton(store: store)
 
-            Button(action: openSettings) {
+            Button {
+                guard Throttle.allow("settings", interval: 0.6) else { return }
+                openSettings()
+            } label: {
                 Image(systemName: "gearshape")
             }
             .buttonStyle(IconButtonStyle())
             .help("设置")
 
-            Button { NSApp.terminate(nil) } label: {
+            Button {
+                guard Throttle.allow("quit", interval: 1) else { return }
+                NSApp.terminate(nil)
+            } label: {
                 Image(systemName: "power")
             }
             .buttonStyle(IconButtonStyle())
@@ -284,4 +284,44 @@ private struct PointingHandCursor: ViewModifier {
 
 extension View {
     func pointingHandCursor() -> some View { modifier(PointingHandCursor()) }
+}
+
+/// 刷新按钮：每次点击至少完整转一圈；请求没结束就一圈圈接着转，结束后停在整圈位置
+private struct RefreshButton: View {
+    @ObservedObject var store: UsageStore
+    @State private var turns: Double = 0
+    @State private var spinning = false
+
+    private let turnDuration = 0.7
+
+    var body: some View {
+        Button(action: tap) {
+            Image(systemName: "arrow.clockwise")
+                .rotationEffect(.degrees(turns * 360))
+        }
+        .buttonStyle(IconButtonStyle())
+        .help("刷新")
+        .onChange(of: store.isLoading) { _, loading in
+            // 轮询等非点击触发的刷新也转
+            if loading, !spinning { spin() }
+        }
+    }
+
+    private func tap() {
+        guard !spinning, !store.isLoading, Throttle.allow("refresh", interval: 1) else { return }
+        spin()
+        Task { await store.refresh() }
+    }
+
+    private func spin() {
+        spinning = true
+        withAnimation(.easeInOut(duration: turnDuration)) { turns += 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + turnDuration) {
+            if store.isLoading {
+                spin()
+            } else {
+                spinning = false
+            }
+        }
+    }
 }

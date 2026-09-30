@@ -99,6 +99,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        // 连点防抖：面板开合动画约 0.12s
+        guard Throttle.allow("statusItem", interval: 0.25) else { return }
         if NSApp.currentEvent?.type == .rightMouseUp {
             showContextMenu()
         } else {
@@ -127,7 +129,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = nil
     }
 
-    @objc private func refreshNow() { Task { await store.refresh() } }
+    @objc private func refreshNow() {
+        guard Throttle.allow("refresh", interval: 1) else { return }
+        Task { await store.refresh() }
+    }
     @objc private func openSettingsAction() { showSettings() }
 
     // MARK: - 设置窗口

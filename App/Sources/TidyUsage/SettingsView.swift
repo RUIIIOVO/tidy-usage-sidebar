@@ -47,6 +47,7 @@ struct SettingsView: View {
     }
 
     private func saveAndTest() {
+        guard !testing, Throttle.allow("saveAndTest", interval: 1) else { return }
         settings.endpoint = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
         settings.setToken(token)
         testing = true
