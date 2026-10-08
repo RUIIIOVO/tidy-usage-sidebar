@@ -182,7 +182,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let titles = Dictionary(uniqueKeysWithValues: store.sections.flatMap(\.rows).map { ($0.id, $0.title) })
         let lines = groups.map { g in
             ProviderInfo.title(g.provider) + "  " + g.windows.map { w in
-                "\(titles[w.id] ?? w.name) \(Int(w.used.rounded()))%"
+                if w.kind == .balance {
+                    return String(format: "\(titles[w.id] ?? w.name) ¥%.2f", w.balance ?? 0)
+                }
+                return "\(titles[w.id] ?? w.name) \(Int(w.used.rounded()))%"
             }.joined(separator: " · ")
         }
         return lines.isEmpty ? "Tidy Usage" : lines.joined(separator: "\n")

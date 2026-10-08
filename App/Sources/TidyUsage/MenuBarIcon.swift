@@ -172,12 +172,12 @@ enum MenuBarIcon {
         ctx.restoreGState()
     }
 
-    /// 余额文字：¥42（整数；小于 10 时保留一位小数，避免 ¥19.9 显示成 ¥20 看不出快没钱）
+    /// 余额文字：¥17.87（保留两位小数，与面板内部一致）
     /// 字体与环内数字（8pt bold rounded）保持同一家族，字号略大一点做区分；
     /// ¥ 号做小、做淡，不要跟数字抢视觉重量。
     private static func balanceText(_ w: UsageWindow) -> NSAttributedString {
         let value = w.balance ?? 0
-        let amount = value < 10 ? String(format: "%.1f", value) : "\(Int(value.rounded()))"
+        let amount = String(format: "%.2f", value)
         let color = w.level.nsColor ?? baseColor()
         let symbolColor = color.withAlphaComponent(color.alphaComponent * 0.62)
 
