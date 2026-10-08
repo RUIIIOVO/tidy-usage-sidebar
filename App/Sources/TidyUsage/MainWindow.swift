@@ -193,10 +193,8 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         let targetHeight = max(100, (size.height - safeTop).rounded())
         let old = window.frame
         let frame = NSRect(x: old.minX, y: old.maxY - targetHeight, width: size.width, height: targetHeight)
-        if frame != old {
-            window.setFrame(frame, display: true)
-            window.saveFrame(usingName: Self.autosaveName)
-        }
+        // 只改高度不存盘：位置由 windowDidMove / 退出时保存，这里每 30 秒随文字变化触发一次，没必要写 UserDefaults
+        if frame != old { window.setFrame(frame, display: true) }
     }
 
     /// 首次打开：放在主屏右上角

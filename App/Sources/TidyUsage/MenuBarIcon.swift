@@ -3,7 +3,7 @@ import AppKit
 /// 菜单栏图像：[logo] (5) (7)   [logo] (5) (7)
 /// 非模板图（否则系统会抹掉橙/红告警色）。常态颜色在绘制时按菜单栏外观取黑或白。
 enum MenuBarIcon {
-    struct Group {
+    struct Group: Hashable {
         let provider: String
         let windows: [UsageWindow]
         /// 这家本次拿到的是旧数据 → 这一组画淡

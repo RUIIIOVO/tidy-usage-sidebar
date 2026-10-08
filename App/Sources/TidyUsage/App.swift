@@ -38,8 +38,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(statusItemClicked(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.imagePosition = .imageOnly
-            // 菜单栏深浅变化（换壁纸 / 切外观）时重画，常态颜色要跟着变
-            appearanceObservation = button.observe(\.effectiveAppearance) { [weak self] _, _ in
+            // 菜单栏深浅变化（换壁纸 / 切外观）时重画，常态颜色要跟着变。
+            // 注意：给状态栏按钮设 image 会触发 AppKit 重绘快照，进而再次通知这个 KVO；
+            // 必须比较新旧外观名字，否则会形成「设 image → KVO → 再设 image」的死循环，空载吃满一个核。
+            appearanceObservation = button.observe(\.effectiveAppearance, options: [.old, .new]) { [weak self] _, change in
+                guard change.oldValue?.name != change.newValue?.name else { return }
                 Task { @MainActor in self?.renderStatusItem() }
             }
         }
@@ -72,8 +75,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] theme in self?.applyTheme(theme) }
             .store(in: &cancellables)
 
-        store.objectWillChange
-            .merge(with: settings.objectWillChange)
+        // 只订阅真正影响菜单栏图标的字段；不用 objectWillChange，否则拖个透明度滑块都会连续重绘状态栏
+        Publishers.Merge4(
+            store.$windows.map { _ in () },
+            store.$errorMessage.map { _ in () },
+            store.$providerStaleSince.map { _ in () },
+            settings.$pinned.map { _ in () })
             .debounce(for: .milliseconds(30), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.renderStatusItem() }
             .store(in: &cancellables)
@@ -165,6 +172,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 菜单栏
 
+    /// 上次绘制的输入指纹；输入没变就不重新生成图片。
+    /// 给 NSStatusBarButton 设 image 不便宜（AppKit 会把按钮渲染成位图快照给菜单栏副本），能省则省。
+    private var lastStatusFingerprint: Int?
+
     private func renderStatusItem() {
         guard let button = statusItem?.button else { return }
         let sections = store.sections
@@ -173,6 +184,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let dimmed = !store.hasData
         let empty: MenuBarIcon.EmptyState =
             store.errorMessage != nil ? .error : (store.hasData ? .idle : .loading)
+
+        var hasher = Hasher()
+        hasher.combine(groups)
+        hasher.combine(dimmed)
+        hasher.combine(empty)
+        hasher.combine(store.errorMessage)
+        hasher.combine(button.effectiveAppearance.name.rawValue)
+        let fingerprint = hasher.finalize()
+        guard fingerprint != lastStatusFingerprint else { return }
+        lastStatusFingerprint = fingerprint
+
         button.image = MenuBarIcon.image(groups: groups, dimmed: dimmed, emptyState: empty)
         button.toolTip = tooltip(groups: groups)
     }
