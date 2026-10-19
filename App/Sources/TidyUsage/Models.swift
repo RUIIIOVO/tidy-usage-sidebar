@@ -58,6 +58,20 @@ struct UsageWindow: Identifiable, Hashable {
         return (n == "five_hour" || n == "5h" || n.contains("hour")) ? .session : .week
     }
 
+    /// 窗口是否已经开始计时（决定显示倒计时，还是「未开始计时」）。
+    ///
+    /// 不能一律看 `used > 0`，两家的 0% 含义不一样：
+    /// - Claude 5 小时窗口：从第一条消息起算，`resets_at` 非空就说明已开始。
+    ///   它的百分比是整数，定时任务发的一句 hi 不到 1%，会被取整成 0%，
+    ///   若再要求 used > 0，窗口明明在跑却显示「未开始计时」。
+    /// - Antigravity：0% 时 `resets_at` 是「查询时刻 + 窗口长度」的滚动占位值
+    ///   （每次查询都往后漂），只能靠 used > 0 判断是否真的开始。
+    var isTiming: Bool {
+        guard resetsAt != nil else { return false }
+        if provider == "claude", kind == .session { return true }
+        return used > 0
+    }
+
     /// 环里印的字：5 = 5 小时，7 = 7 天；分模型的周额度用模型名首字母（Fable → F）
     var glyph: String {
         if kind == .session { return "5" }
@@ -313,7 +327,7 @@ enum ResetText {
 
     /// 24 小时内显示倒计时（2 小时 6 分后重置），更远的显示具体时间（10月2日 10:00 重置）
     static func text(for w: UsageWindow, now: Date) -> String {
-        guard let date = w.resetsAt, w.used > 0 else { return "未开始计时" }
+        guard w.isTiming, let date = w.resetsAt else { return "未开始计时" }
         let mins = Int((date.timeIntervalSince(now) / 60).rounded())
         if mins <= 0 { return "即将重置" }
         if mins < 60 { return "\(mins) 分钟后重置" }
